@@ -12,7 +12,7 @@ def cal_distance(point1, point2, precision):
     with preprocessing, point1_x >= point2_x and point1_y >= point2_y
     :param point1: list[point1_x, point1_y]
     :param point2: list[point2_x, point2_y]
-    :param precision: integer, the precision of distance
+    :param precision: integer, the number of bits occupied by distance
     :return: QuantumCircuit
     """
     control = QuantumRegister(precision)
@@ -30,3 +30,35 @@ def cal_distance(point1, point2, precision):
     unitary_function.QFT_dgr(qc, control, precision)
 
     return qc
+
+
+def build_QRAM(dist_id, index_num, precision):
+    source = QuantumRegister(precision)
+    index = QuantumRegister(index_num)
+    val = QuantumRegister(precision)
+    qc = QuantumCircuit(source, index, val)
+
+    # mapping
+    for i in np.arange(index_num):
+        if dist_id % 2 == 0:
+            qc.x(index[i])
+        dist_id = int(dist_id / 2)
+
+    for i in np.arange(index_num - 1, -1, -1):
+        if dist_id % 2 == 0:
+            qc.x(index[i])
+        dist_id = int(dist_id / 2)
+
+
+
+def find_minimum_oracle(precision, dist_num):
+    """
+    the Oracle operator of finding minimum Grover algorithm
+    :param precision: integer, the number of bits occupied by distance
+    :param dist_num: integer, the number of distance waiting to be sorted
+    :return: QuantumCircuit
+    """
+    info = QuantumRegister(precision)
+    identity = QuantumRegister(m.ceil(dist_num))
+    val = QuantumRegister(precision)
+
