@@ -77,3 +77,4 @@ if __name__ == '__main__':
     qc.append(uf.cal_distance(point1, point2, 6), [*control, *target])
     qc.measure(control, c)
     display_result.Measurement(qc, return_M=False, print_M=True, shots=1000)
+    print('success')
