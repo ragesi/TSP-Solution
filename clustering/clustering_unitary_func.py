@@ -36,6 +36,7 @@ def build_QRAM(dist_id, index_num, precision):
     source = QuantumRegister(precision)
     index = QuantumRegister(index_num)
     val = QuantumRegister(precision)
+    ancilla = QuantumRegister(index_num - 1)
     qc = QuantumCircuit(source, index, val)
 
     # mapping
@@ -44,11 +45,13 @@ def build_QRAM(dist_id, index_num, precision):
             qc.x(index[i])
         dist_id = int(dist_id / 2)
 
+    for i in np.arange(precision):
+        qc.mcx([source[i], *index], val[i], ancilla, mode='v-chain')
+
     for i in np.arange(index_num - 1, -1, -1):
         if dist_id % 2 == 0:
             qc.x(index[i])
         dist_id = int(dist_id / 2)
-
 
 
 def find_minimum_oracle(precision, dist_num):
@@ -61,4 +64,3 @@ def find_minimum_oracle(precision, dist_num):
     info = QuantumRegister(precision)
     identity = QuantumRegister(m.ceil(dist_num))
     val = QuantumRegister(precision)
-
