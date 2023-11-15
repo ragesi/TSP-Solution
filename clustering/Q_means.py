@@ -22,7 +22,6 @@ class QMeans:
 
         self.init_centroid()
         self.init_clusters()
-        print(self.centroids)
 
     def init_centroid(self):
         """
@@ -98,9 +97,21 @@ class QMeans:
         data = QuantumRegister(dist_num + 1)
         cl = ClassicalRegister(dist_num)
         qc = QuantumCircuit(control, data, cl)
+        # q = QuantumRegister(dist_num * 3)
+        # cl = ClassicalRegister(dist_num)
+        # qc = QuantumCircuit(q, cl)
 
         # find the x and y's bound
         x_range, y_range = QMeans.get_range([source, *targets])
+
+        # for i in np.arange(dist_num):
+        #     qc.append(QMeans.to_bloch_state(source, x_range, y_range), [q[i * 3 + 1]])
+        #     qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [q[i * 3 + 2]])
+        #
+        #     qc.append(uf.inner_product(), q[i * 3: (i + 1) * 3])
+        #
+        # for i in np.arange(dist_num):
+        #     qc.measure(q[i * 3], cl[i])
 
         # transform to bloch coordinate
         qc.append(QMeans.to_bloch_state(source, x_range, y_range), [data[0]])
@@ -111,7 +122,7 @@ class QMeans:
         for i in np.arange(dist_num):
             qc.append(uf.inner_product(), [control[i], data[i], data[i + 1]])
         qc.measure(control, cl)
-        output = disp.Measurement(qc, return_M=True, print_M=False, shots=10)
+        output = disp.Measurement(qc, return_M=True, print_M=False, shots=100)
         dists = [0 for _ in np.arange(dist_num)]
         for item in output.items():
             for i in np.arange(dist_num):
@@ -127,6 +138,8 @@ class QMeans:
                 new_clusters[new_cluster_id].append(point)
                 if new_cluster_id != i:
                     is_terminate = False
+
+        self.clusters = new_clusters
         return is_terminate
 
     def update_centroids(self):
@@ -146,7 +159,7 @@ class QMeans:
 
 
 if __name__ == '__main__':
-    with open('../dataset/xqf131.tsp', 'r') as file:
+    with open('dataset/xqf131.tsp', 'r') as file:
         lines = file.readlines()
 
     lines = lines[8: -1]
@@ -157,7 +170,10 @@ if __name__ == '__main__':
 
     test = QMeans(points, 5, 10)
 
-    plt.scatter([centroid[0] for centroid in test.centroids], [centroid[1] for centroid in test.centroids], s=10,
-                marker='x')
+    color = ['red', 'green', 'orange', 'blue', 'black']
+    for i in np.arange(5):
+        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
+        for point in test.clusters[i]:
+            plt.scatter(point[0], point[1], color=color[i], s=5)
     plt.legend()
     plt.show()
