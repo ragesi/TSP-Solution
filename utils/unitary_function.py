@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+from qiskit import QuantumRegister, QuantumCircuit
 import numpy as np
 import math as m
 
@@ -136,3 +137,15 @@ def Grover_diffusion(qc, control, target, ancilla, control_num):
     NOT_gate.zero_NOT(qc, control, target, ancilla, control_num)
     for i in np.arange(control_num - 1, -1, -1):
         qc.h(control[i])
+
+
+def inner_product():
+    control = QuantumRegister(1)
+    data = QuantumRegister(2)
+    qc = QuantumCircuit(control, data)
+
+    qc.h(control)
+    qc.cswap(control[0], data[0], data[1])
+    qc.h(control)
+
+    return qc

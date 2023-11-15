@@ -1,9 +1,10 @@
 # -*- coding: UTF-8 -*-
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+import qiskit.circuit.library as lib
 import math as m
 import numpy as np
 
-from utils import unitary_function
+from utils import unitary_function as uf, util, display_result as disp
 
 
 def cal_distance(point1, point2, precision):
@@ -24,10 +25,10 @@ def cal_distance(point1, point2, precision):
     theta = round(1.0 * (point1[0] - point2[0] + point1[1] - point2[1]) * 60)
     theta = 2.0 * m.pi * theta / 64
     for i in np.arange(precision):
-        for _ in np.arange(2 ** i):
+        for _ in np.arange(2 ** (precision - i - 1)):
             qc.cp(theta, control[i], target[0])
 
-    unitary_function.QFT_dgr(qc, control, precision)
+    qc.append(lib.QFT(num_qubits=precision, do_swaps=False, inverse=True), control)
 
     return qc
 

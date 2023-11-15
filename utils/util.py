@@ -22,11 +22,4 @@ def decimal_to_binary(real, qubit_num):
     return res
 
 
-def to_bloch_state(point, x_range, y_range):
-    """
 
-    :param point:
-    :param x_range:
-    :param y_range:
-    :return:
-    """
