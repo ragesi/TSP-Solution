@@ -13,11 +13,24 @@ def cal_range(points):
     return [tmp_x[0], tmp_x[-1]], [tmp_y[0], tmp_y[-1]]
 
 
-def build_U_operator(qubit_num, dist_num, source, targets):
-    matrix_size = 2 ** qubit_num
-    np.identity(matrix_size, float)
-    x_range, y_range =
-    for i in np.arange(dist_num):
+def equal_to_int_NOT(real, qubit_num):
+    control = QuantumRegister(qubit_num)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(control, res)
+
+    x_list = []
+    for i in np.arange(qubit_num):
+        if real % 2 == 0:
+            x_list.append(control[i])
+        real = int(real / 2)
+
+    for i in np.arange(len(x_list)):
+        qc.x(x_list[i])
+    qc.mcx(control, res)
+    for i in np.arange(len(x_list) - 1, -1, -1):
+        qc.x(x_list[i])
+
+    return qc
 
 
 def to_phase_state(source, targets):
@@ -32,22 +45,108 @@ def to_phase_state(source, targets):
     return source, targets
 
 
+def int_to_qubit(real, qubit_num):
+    qc = QuantumCircuit(qubit_num)
+
+    for i in np.arange(qubit_num):
+        if real % 2 == 1:
+            qc.x(i)
+        real = int(real / 2)
+
+    return qc
+
+
+def compare_int(comp1, comp2, precision):
+    val = QuantumRegister(precision)
+    anc = QuantumRegister(precision - 1)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(val, anc, res)
+
+    comp1 = round(comp1 * (2 ** precision))
+    comp2 = round(comp2 * (2 ** precision))
+    qc.append(int_to_qubit(comp1, precision), val)
+    qc.append(lib.IntegerComparator(precision, comp2), [*val, *res, *anc])
+
+    return qc
+
+
+def QPE_U(precision, theta):
+    control = QuantumRegister(precision)
+    target = QuantumRegister(1)
+    qc = QuantumCircuit(control, target)
+
+    theta = round(theta * (2 ** precision)) * 2.0 * m.pi / (2 ** precision)
+    for i in np.arange(precision):
+        for _ in np.arange(2 ** (precision - i - 1)):
+            qc.cp(theta, control[i], target[0])
+
+    return qc
+
+
 def cal_dist(source, target, precision):
-
-
-
-def find_min_oracle(source, targets, threshold, precision):
-    dist_num = len(targets)
-    id_reg_num = m.ceil(m.log2(dist_num))
-    index = QuantumRegister(id_reg_num)
     id_anc = QuantumRegister(1)
     dist = QuantumRegister(precision)
     dist_abs = QuantumRegister(precision)
+    dist_anc = QuantumRegister(1)
     qpe_anc = QuantumRegister(1)
-    dist_comp = QuantumRegister(1)
-    anc = QuantumRegister(min(id_reg_num - 2, precision - 1))
+    anc = QuantumRegister(precision - 1)
+    qc = QuantumCircuit(id_anc, dist, dist_abs, qpe_anc, anc)
+
+    for i in np.arange(len(source)):
+        qc.append(compare_int(source[i], target[i], precision), [*dist_abs, *anc, *dist_anc])
+
+        for j in np.arange(precision):
+            qc.ccx(dist[j], dist_anc[0], qpe_anc[0])
+            theta = round((source[i] - target[i]) * (2 ** precision)) * 2.0 * m.pi / (2 ** precision)
+            for _ in np.arange(2 ** (precision - j - 1)):
+                qc.cp(theta, qpe_anc[0], id_anc[0])
+            qc.ccx(dist[j], dist_anc[0], qpe_anc[0])
+
+            qc.x(dist_anc[0])
+            qc.ccx(dist[j], dist_anc[0], qpe_anc[0])
+            theta = round((target[i] - source[i]) * (2 ** precision)) * 2.0 * m.pi / (2 ** precision)
+            for _ in np.arange(2 ** (precision - j - 1)):
+                qc.cp(theta, qpe_anc[0], id_anc[0])
+            qc.ccx(dist[j], dist_anc[0], qpe_anc[0])
+            qc.x(dist_anc[0])
+
+        qc.append(compare_int(source[i], target[i], precision).inverse(), [*dist_abs, *anc, *dist_anc])
+
+    return qc
+
+
+def build_QRAM(dist_id, id_reg_num, theta, precision):
+    index = QuantumRegister(id_reg_num)
+    id_anc = QuantumRegister(1)
+    dist = QuantumRegister(precision)
+    qc = QuantumCircuit(index, id_anc, dist)
+
+    qc.append(equal_to_int_NOT(dist_id, id_reg_num), [*index, *id_anc])
+    qc.mcx(index, id_anc)
+
+    for i in np.arange(precision):
+        for _ in np.arange(2 ** (precision - i - 1)):
+            qc.cp(theta, dist[i], id_anc[0])
+
+    qc.mcx(index, id_anc)
+    qc.append(equal_to_int_NOT(dist_id, id_reg_num).inverse(), [*index, *id_anc])
+
+    qc.append(lib.QFT(precision, inverse=True, do_swaps=False), dist)
+
+    return qc
+
+
+def find_min_oracle(source, targets, threshold, precision, id_reg_num):
+    # TODO: 此处的距离计算过程交由经典计算机执行，可以尝试使用交换门计算距离，但需要验证交换门计算出的距离是否准确
+    # TODO: 若交换门计算的距离的准确性可以接受，那么就使用交换门计算；若不可以接受，则因为网上现在并没有使用经典计算机计算距离的先例，所以就只能使用未完成的方式计算了
+    dist_num = len(targets)
+    # id_reg_num = m.ceil(m.log2(dist_num))
+    index = QuantumRegister(id_reg_num)
+    id_anc = QuantumRegister(1)
+    dist = QuantumRegister(precision)
+    anc = QuantumRegister(precision - 1)
     res = QuantumRegister(1)
-    qc = QuantumCircuit(index, id_anc, dist, dist_abs, qpe_anc, dist_comp, anc, res)
+    qc = QuantumCircuit(index, id_anc, dist, anc, res)
     # initialization
     qc.h(index)
     qc.x(res)
@@ -57,10 +156,26 @@ def find_min_oracle(source, targets, threshold, precision):
 
     # start oracle
     for i in np.arange(dist_num):
-        qc.mcx(index, id_anc, anc[:(id_reg_num - 2)], mode='v-chain')
+        theta = round((abs(source[0] - targets[i][0]) + abs(source[1] - targets[i][1])) * (2 ** precision))
+        theta = 2.0 * m.pi * theta / (2 ** precision)
+        qc.append(build_QRAM(i, id_reg_num, theta, precision), [*index, *id_anc, *dist])
 
-        # calculate distance between source and current target
-        # calculate the absolute value for delta x and delta y respectively
+        qc.append(lib.IntegerComparator(precision, threshold, False), [*dist, *res, *anc])
+
+        qc.append(build_QRAM(i, id_reg_num, theta, precision).inverse(), [*index, *id_anc, *dist])
+
+
+def find_min_diffusion(id_reg_num):
+    index = QuantumRegister(id_reg_num)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(index, res)
+
+    # TODO: 此处需验证mcx在noancilla模式下是否仍会存在相位反冲现象
+    qc.h(index)
+    qc.x(index)
+    qc.mcx(index, res)
+    qc.x(index)
+    qc.h(index)
 
 
 def cal_distance(point1, point2, precision):
