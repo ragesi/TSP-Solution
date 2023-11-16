@@ -7,6 +7,62 @@ import numpy as np
 from utils import unitary_function as uf, util, display_result as disp
 
 
+def cal_range(points):
+    tmp_x = sorted([point[0] for point in points])
+    tmp_y = sorted([point[1] for point in points])
+    return [tmp_x[0], tmp_x[-1]], [tmp_y[0], tmp_y[-1]]
+
+
+def build_U_operator(qubit_num, dist_num, source, targets):
+    matrix_size = 2 ** qubit_num
+    np.identity(matrix_size, float)
+    x_range, y_range =
+    for i in np.arange(dist_num):
+
+
+def to_phase_state(source, targets):
+    x_range, y_range = cal_range([source, *targets])
+    x_width = x_range[1] - x_range[0]
+    y_width = y_range[1] - y_range[0]
+
+    source = [0.5 * (source[0] - x_range[0]) / x_width, 0.5 * (source[1] - y_range[0]) / y_width]
+    for i in np.arange(len(targets)):
+        targets[i] = [0.5 * (targets[i][0] - x_range[0]) / x_width, 0.5 * (targets[i][1] - y_range[0]) / y_width]
+
+    return source, targets
+
+
+def cal_dist(source, target, precision):
+
+
+
+def find_min_oracle(source, targets, threshold, precision):
+    dist_num = len(targets)
+    id_reg_num = m.ceil(m.log2(dist_num))
+    index = QuantumRegister(id_reg_num)
+    id_anc = QuantumRegister(1)
+    dist = QuantumRegister(precision)
+    dist_abs = QuantumRegister(precision)
+    qpe_anc = QuantumRegister(1)
+    dist_comp = QuantumRegister(1)
+    anc = QuantumRegister(min(id_reg_num - 2, precision - 1))
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(index, id_anc, dist, dist_abs, qpe_anc, dist_comp, anc, res)
+    # initialization
+    qc.h(index)
+    qc.x(res)
+    qc.h(res)
+    # map points' x and y to the range of 0 to 0.5
+    source, targets = to_phase_state(source, targets)
+
+    # start oracle
+    for i in np.arange(dist_num):
+        qc.mcx(index, id_anc, anc[:(id_reg_num - 2)], mode='v-chain')
+
+        # calculate distance between source and current target
+        # calculate the absolute value for delta x and delta y respectively
+
+
 def cal_distance(point1, point2, precision):
     """
     calculating the distance of point1 and point2

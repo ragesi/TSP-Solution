@@ -2,6 +2,7 @@
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import MultipleLocator
 
 from utils import unitary_function as uf
 from utils import display_result as disp, util
@@ -93,35 +94,35 @@ class QMeans:
     @staticmethod
     def find_optimal_cluster(source, targets):
         dist_num = len(targets)
-        control = QuantumRegister(dist_num)
-        data = QuantumRegister(dist_num + 1)
-        cl = ClassicalRegister(dist_num)
-        qc = QuantumCircuit(control, data, cl)
-        # q = QuantumRegister(dist_num * 3)
+        # control = QuantumRegister(dist_num)
+        # data = QuantumRegister(dist_num + 1)
         # cl = ClassicalRegister(dist_num)
-        # qc = QuantumCircuit(q, cl)
+        # qc = QuantumCircuit(control, data, cl)
+        q = QuantumRegister(dist_num * 3)
+        cl = ClassicalRegister(dist_num)
+        qc = QuantumCircuit(q, cl)
 
         # find the x and y's bound
         x_range, y_range = QMeans.get_range([source, *targets])
 
-        # for i in np.arange(dist_num):
-        #     qc.append(QMeans.to_bloch_state(source, x_range, y_range), [q[i * 3 + 1]])
-        #     qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [q[i * 3 + 2]])
-        #
-        #     qc.append(uf.inner_product(), q[i * 3: (i + 1) * 3])
-        #
-        # for i in np.arange(dist_num):
-        #     qc.measure(q[i * 3], cl[i])
+        for i in np.arange(dist_num):
+            qc.append(QMeans.to_bloch_state(source, x_range, y_range), [q[i * 3 + 1]])
+            qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [q[i * 3 + 2]])
+
+            qc.append(uf.inner_product(), q[i * 3: (i + 1) * 3])
+
+        for i in np.arange(dist_num):
+            qc.measure(q[i * 3], cl[i])
 
         # transform to bloch coordinate
-        qc.append(QMeans.to_bloch_state(source, x_range, y_range), [data[0]])
-        for i in np.arange(dist_num):
-            qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [data[i + 1]])
-
-        # calculate similarity through inner product
-        for i in np.arange(dist_num):
-            qc.append(uf.inner_product(), [control[i], data[i], data[i + 1]])
-        qc.measure(control, cl)
+        # qc.append(QMeans.to_bloch_state(source, x_range, y_range), [data[0]])
+        # for i in np.arange(dist_num):
+        #     qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [data[i + 1]])
+        #
+        # # calculate similarity through inner product
+        # for i in np.arange(dist_num):
+        #     qc.append(uf.inner_product(), [control[i], data[i], data[i + 1]])
+        # qc.measure(control, cl)
         output = disp.Measurement(qc, return_M=True, print_M=False, shots=100)
         dists = [0 for _ in np.arange(dist_num)]
         for item in output.items():
@@ -159,7 +160,7 @@ class QMeans:
 
 
 if __name__ == '__main__':
-    with open('dataset/xqf131.tsp', 'r') as file:
+    with open('../dataset/xqf131.tsp', 'r') as file:
         lines = file.readlines()
 
     lines = lines[8: -1]
@@ -175,5 +176,11 @@ if __name__ == '__main__':
         plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
         for point in test.clusters[i]:
             plt.scatter(point[0], point[1], color=color[i], s=5)
-    plt.legend()
+    x_major_locator = MultipleLocator(10)
+    y_major_locator = MultipleLocator(10)
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(x_major_locator)
+    ax.yaxis.set_major_locator(y_major_locator)
+    plt.xlim(-10, 110)
+    plt.ylim(-10, 110)
     plt.show()
