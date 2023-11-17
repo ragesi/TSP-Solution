@@ -115,13 +115,13 @@ def cal_dist(source, target, precision):
     return qc
 
 
-def build_QRAM(dist_id, id_reg_num, theta, precision):
-    index = QuantumRegister(id_reg_num)
+def build_QRAM(dist_id, index_num, theta, precision):
+    index = QuantumRegister(index_num)
     id_anc = QuantumRegister(1)
     dist = QuantumRegister(precision)
     qc = QuantumCircuit(index, id_anc, dist)
 
-    qc.append(equal_to_int_NOT(dist_id, id_reg_num), [*index, *id_anc])
+    qc.append(equal_to_int_NOT(dist_id, index_num), [*index, *id_anc])
     qc.mcx(index, id_anc)
 
     for i in np.arange(precision):
@@ -129,19 +129,53 @@ def build_QRAM(dist_id, id_reg_num, theta, precision):
             qc.cp(theta, dist[i], id_anc[0])
 
     qc.mcx(index, id_anc)
-    qc.append(equal_to_int_NOT(dist_id, id_reg_num).inverse(), [*index, *id_anc])
+    qc.append(equal_to_int_NOT(dist_id, index_num).inverse(), [*index, *id_anc])
 
     qc.append(lib.QFT(precision, inverse=True, do_swaps=False), dist)
 
     return qc
 
 
-def find_min_oracle(source, targets, threshold, precision, id_reg_num):
+def find_min_oracle(source, targets, threshold, precision, index_num):
     # TODO: 此处的距离计算过程交由经典计算机执行，可以尝试使用交换门计算距离，但需要验证交换门计算出的距离是否准确
     # TODO: 若交换门计算的距离的准确性可以接受，那么就使用交换门计算；若不可以接受，则因为网上现在并没有使用经典计算机计算距离的先例，所以就只能使用未完成的方式计算了
     dist_num = len(targets)
     # id_reg_num = m.ceil(m.log2(dist_num))
-    index = QuantumRegister(id_reg_num)
+    index = QuantumRegister(index_num)
+    id_anc = QuantumRegister(1)
+    dist = QuantumRegister(precision)
+    anc = QuantumRegister(precision - 1)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(index, id_anc, dist, anc, res)
+
+    # start oracle
+    for i in np.arange(dist_num):
+        theta = round((abs(source[0] - targets[i][0]) + abs(source[1] - targets[i][1])) * (2 ** precision))
+        theta = 2.0 * m.pi * theta / (2 ** precision)
+        qc.append(build_QRAM(i, index_num, theta, precision), [*index, *id_anc, *dist])
+
+        qc.append(lib.IntegerComparator(precision, threshold, False), [*dist, *res, *anc])
+
+        qc.append(build_QRAM(i, index_num, theta, precision).inverse(), [*index, *id_anc, *dist])
+
+
+def find_min_diffusion(index_num):
+    index = QuantumRegister(index_num)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(index, res)
+
+    qc.h(index)
+    qc.x(index)
+    qc.mcx(index, res)
+    qc.x(index)
+    qc.h(index)
+    return qc
+
+
+def find_min_grover(source, targets, threshold, precision, iter_num):
+    dist_num = len(targets)
+    index_num = m.ceil(m.log2(dist_num)) + 1
+    index = QuantumRegister(index_num)
     id_anc = QuantumRegister(1)
     dist = QuantumRegister(precision)
     anc = QuantumRegister(precision - 1)
@@ -154,28 +188,20 @@ def find_min_oracle(source, targets, threshold, precision, id_reg_num):
     # map points' x and y to the range of 0 to 0.5
     source, targets = to_phase_state(source, targets)
 
-    # start oracle
-    for i in np.arange(dist_num):
-        theta = round((abs(source[0] - targets[i][0]) + abs(source[1] - targets[i][1])) * (2 ** precision))
-        theta = 2.0 * m.pi * theta / (2 ** precision)
-        qc.append(build_QRAM(i, id_reg_num, theta, precision), [*index, *id_anc, *dist])
+    for _ in np.arange(iter_num):
+        qc.append(find_min_oracle(source, targets, threshold, precision, index_num),
+                  [*index, *id_anc, *dist, *anc, *res])
+        qc.append(find_min_diffusion(index_num), [*index, *res])
 
-        qc.append(lib.IntegerComparator(precision, threshold, False), [*dist, *res, *anc])
-
-        qc.append(build_QRAM(i, id_reg_num, theta, precision).inverse(), [*index, *id_anc, *dist])
+    output = disp.Measurement(qc, return_M=False, print_M=True, shots=1)
+    return output[0]
 
 
-def find_min_diffusion(id_reg_num):
-    index = QuantumRegister(id_reg_num)
-    res = QuantumRegister(1)
-    qc = QuantumCircuit(index, res)
-
-    # TODO: 此处需验证mcx在noancilla模式下是否仍会存在相位反冲现象
-    qc.h(index)
-    qc.x(index)
-    qc.mcx(index, res)
-    qc.x(index)
-    qc.h(index)
+def find_minimum(source, targets, precision):
+    # map points' x and y to the range of 0 to 0.5
+    source, targets = to_phase_state(source, targets)
+    threshold = round((abs(source[0] - targets[0][0]) + abs(source[1] - targets[0][1])) * (2 ** precision))
+    find_min_grover(source, targets, threshold, precision, 1)
 
 
 def cal_distance(point1, point2, precision):
