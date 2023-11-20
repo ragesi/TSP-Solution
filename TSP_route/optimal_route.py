@@ -23,8 +23,8 @@ class OptimalRoute:
         self.node_num = node_num
         self.node_list = node_list
         # self.dis_adj's size is [node_num - 1, 4], filling 0 to make-up, which excludes the last step's distance
-        self.dist_adj = np.zeros((self.node_num - 1, 4), dtype=complex)
-        self.end_dists = np.zeros(4, dtype=complex)
+        self.dist_adj = np.zeros((self.node_num - 1, self.node_num - 2), dtype=complex)
+        self.end_dists = np.zeros(self.node_num - 2, dtype=complex)
         self.total_qubit_num = total_qubit_num
 
         # the number of choices for every step, excluding the start and the end
@@ -71,10 +71,10 @@ class OptimalRoute:
             for j in np.arange(len(dis_adj[i])):
                 dis_adj[i][j] = round(1.0 * dis_adj[i][j] / total_distance * base_num) / base_num
 
-                # calculating the threshold
+        # calculating the threshold
         threshold = 1.0 / (2 ** self.precision)
         for i in np.arange(len(dis_adj)):
-            threshold += (dis_adj[i][i] / 2.0 / m.pi)
+            threshold += dis_adj[i][i]
         threshold = util.decimal_to_binary(threshold, self.precision)
         self.thresholds.append(threshold)
 
@@ -202,7 +202,7 @@ class OptimalRoute:
 
         return qc
 
-    def Grover(self, threshold):
+    def grover(self, threshold):
         """
         an iteration of Grover algorithm
         """
@@ -228,6 +228,8 @@ class OptimalRoute:
 
         # grover diffusion
         qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
+
+        return qc
 
     # def main(self):
     #     """
@@ -263,6 +265,12 @@ class OptimalRoute:
 
 
 if __name__ == '__main__':
+    adj = [[1, 2, 3, 4, 5, 0],
+           [1, 2, 3, 4, 5, 6],
+           [1, 2, 3, 4, 5, 6],
+           [1, 2, 3, 4, 5, 6],
+           [1, 2, 3, 4, 5, 6],
+           [1, 2, 3, 4, 5, 6]]
     # 2.49次
     # adj = [[1, 2, 3, 4, 0],
     #        [1, 2, 3, 4, 5],
@@ -270,10 +278,10 @@ if __name__ == '__main__':
     #        [1, 2, 3, 4, 5],
     #        [1, 2, 3, 4, 5]]
     # 2.49次
-    adj = [[1, 2, 3, 0],
-           [1, 2, 3, 4],
-           [1, 2, 3, 4],
-           [1, 2, 3, 4]]
+    # adj = [[1, 2, 3, 0],
+    #        [1, 2, 3, 4],
+    #        [1, 2, 3, 4],
+    #        [1, 2, 3, 4]]
     # 2.24次
     # adj = [[1.5, 3.2, 0],
     #        [0, 2.4, 9],
@@ -284,12 +292,13 @@ if __name__ == '__main__':
     # adj = [[2, 2, 0],
     #        [0, 2, 2],
     #        [2, 0, 2]]
-    test = OptimalRoute(5, [0, 1, 2, 3, 4], adj, 27)
-    test.qc.append(test.check_choice_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
+    test = OptimalRoute(7, [0, 1, 2, 3, 4, 5, 6], adj, 40)
+    # test.qc.append(test.check_choice_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
+    test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[1]])
     print(test.qc.depth())
-    test.qc.measure([*test.qram, test.res[0]], test.cl)
-    output = execute.sampler_run('simulator_mps', 1, 2, test.qc, 1000)
+    test.qc.measure([*test.qram, test.res[1]], test.cl)
     # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=1000)
+    output = execute.sampler_run('simulator_mps', 1, 2, test.qc, 1000)
     output = dict(output)
     output = {util.int_to_binary(key, test.qram_num + 1): val for key, val in output.items()}
     print(output)
