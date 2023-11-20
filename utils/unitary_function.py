@@ -1,126 +1,92 @@
 # -*- coding: UTF-8 -*-
 from qiskit import QuantumRegister, QuantumCircuit
+import qiskit.circuit.library as lib
 import numpy as np
 import math as m
+import cmath as cm
+
+from qiskit.circuit.library import UnitaryGate
 
 from utils import NOT_gate
 
 
-def QPE_U(qc, control, target, ancilla, dis_adj):
+def build_U_operator(qubit_num: int, dists: np.ndarray) -> UnitaryGate:
     """
-    the U operator in QPE, which is used to add the distance of every step
-    :param qc: QuantumCircuit
-    :param control: QuantumRegister[int]
-    :param target: QuantumRegister
-    :param ancilla: QuantumRegister[int]
-    :param dis_adj: adjacency matrix, [1 * 4]
+    build the unitary operator that is used in the QPE algorithm
+    :param qubit_num: integer, the number of qubits that are implemented by the unitary operator
+    :param dists: the distance between the n-th node and any other node
     """
-    # TODO: only 4 * 4 dis_adj is considered, it is better to expand
+    matrix = np.eye(2 ** qubit_num, dtype=complex)
+    for i in np.arange(len(dists)):
+        tmp = i + 2 ** (qubit_num - 1)
+        matrix[tmp][tmp] = cm.exp(1j * 2.0 * m.pi * dists[i])
+    u_gate = lib.UnitaryGate(matrix)
 
-    # setting the first three element in dis_adj
-    qc.cp(dis_adj[2] - dis_adj[0], control, target[0])
-    qc.p(dis_adj[0], control)
-    qc.cp(dis_adj[1] - dis_adj[0], control, target[1])
-
-    # setting the last element in dis_adj
-    delta_dis = dis_adj[3] - dis_adj[1] - dis_adj[2] + dis_adj[0]
-    qc.ccx(control, target[0], ancilla)
-    qc.cp(delta_dis, ancilla, target[1])
-    qc.ccx(control, target[0], ancilla)
+    return u_gate
 
 
-def QPE_U_dgr(qc, control, target, ancilla, dis_adj):
+def QPE_U(control_num: int, target_num: int, dists: np.ndarray) -> QuantumCircuit:
     """
-    the inverse of QPE_U
-    :param qc: QuantumCircuit
-    :param control: QuantumRegister[int]
-    :param target: QuantumRegister
-    :param ancilla: QuantumRegister[int]
-    :param dis_adj: adjacency matrix, [1 * 4]
+    the unitary operator in QPE, which is used to add the distance of every step
+    :param control_num: integer, the number of control bits
+    :param target_num: integer, the number of target bits
+    :param dists: the n-th row in the distance adjacency whose size is 1 * n,
+                  representing the distance between the n-th node and any other node
     """
-    # reverse the delta_dis
-    delta_dis = -dis_adj[3] + dis_adj[1] + dis_adj[2] - dis_adj[0]
-    qc.ccx(control, target[0], ancilla)
-    qc.cp(delta_dis, ancilla, target[1])
-    qc.ccx(control, target[0], ancilla)
+    control = QuantumRegister(control_num)
+    target = QuantumRegister(target_num)
+    qc = QuantumCircuit(control, target)
 
-    qc.cp(-dis_adj[1] + dis_adj[0], control, target[1])
-    qc.p(-dis_adj[0], control)
-    qc.cp(-dis_adj[2] + dis_adj[0], control, target[0])
+    u_gate = build_U_operator(target_num + 1, dists)
+    for i in np.arange(control_num):
+        for _ in np.arange(2 ** (control_num - i - 1)):
+            qc.append(u_gate, [control[i], *target])
+
+    return qc
 
 
-def n_QPE_U(qc, control, source, target, ancilla, dis_adj):
+def custom_QPE_U(control_num: int, per_qram_num: int, anc_num: int, dist_adj: np.ndarray) -> QuantumCircuit:
     """
-    the same as QPE_U but has multi-bits in control,
-    which is used when the source of every step is unclear
-    :param qc: QuantumCircuit
-    :param control: QuantumRegister[int], one of the precision bit
-    :param source: QuantumRegister, the source register for current step
-    :param target: QuantumRegister
-    :param ancilla: QuantumRegister, need 3 bits
-    :param dis_adj: adjacency matrix, [3 * 4]
+    custom unitary operator of QPE algorithm, according the route's source add distance dynamically
+    :param control_num: integer, the precision of result
+    :param per_qram_num: integer, the number of choice bit
+    :param anc_num: integer, must be greater than 1
+    :param dist_adj: distance adjacency
     """
-    for i in np.arange(len(dis_adj)):
-        NOT_gate.equal_to_int_NOT(qc, source, i, ancilla[0], ancilla[1:], len(source))
-        qc.ccx(control, ancilla[0], ancilla[1])
+    control = QuantumRegister(control_num)
+    source = QuantumRegister(per_qram_num)
+    target = QuantumRegister(per_qram_num)
+    anc = QuantumRegister(anc_num)
+    qc = QuantumCircuit(control, source, target, anc)
 
-        QPE_U(qc, ancilla[1], target, ancilla[2], dis_adj[i])
+    for i in np.arange(len(dist_adj)):
+        u_gate = build_U_operator(per_qram_num + 1, dist_adj[i])
+        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 1), [*source, *anc[1:], anc[0]])
+        qc.ccx(control[i], anc[0], anc[1])
 
-        qc.ccx(control, ancilla[0], ancilla[1])
-        NOT_gate.equal_to_int_NOT(qc, source, i, ancilla[0], ancilla[1:], len(source))
+        for j in np.arange(control_num):
+            for _ in np.arange(2 ** (control_num - j - 1)):
+                qc.append(u_gate, [anc[1], *target])
 
+        qc.ccx(control[i], anc[0], anc[1])
+        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 1), [*source, *anc[1:], anc[0]])
 
-def n_QPE_U_dgr(qc, control, source, target, ancilla, dis_adj):
-    """
-    the inverse of n_QPE_U
-    :param qc: QuantumCircuit
-    :param control: QuantumRegister[int]
-    :param source: QuantumRegister
-    :param target: QuantumRegister
-    :param ancilla: QuantumRegister, need 3 bits
-    :param dis_adj: adjacency matrix, [3 * 4]
-    """
-
-    for i in np.arange(len(dis_adj) - 1, -1, -1):
-        NOT_gate.equal_to_int_NOT(qc, source, i, ancilla[0], ancilla[1:], len(source))
-        qc.ccx(control, ancilla[0], ancilla[1])
-
-        QPE_U_dgr(qc, ancilla[1], target, ancilla[2], dis_adj[i])
-
-        qc.ccx(control, ancilla[0], ancilla[1])
-        NOT_gate.equal_to_int_NOT(qc, source, i, ancilla[0], ancilla[1:], len(source))
+    return qc
 
 
-def QFT(qc, target, target_num):
-    """
-    the operator of Quantum Fourier Transformation
-    :param qc: QuantumCircuit
-    :param target: QuantumRegister
-    :param target_num: integer, the number of q bits
-    """
-    R_phis = [0]
-    for i in np.arange(2, int(target_num + 1)):
-        R_phis.append(2 / (2 ** i) * m.pi)
-    for j in np.arange(int(target_num)):
-        qc.h(target[int(j)])
-        for k in np.arange(int(target_num - (j + 1))):
-            qc.cp(R_phis[k + 1], target[int(j + k + 1)], target[int(j)])
+def grover_diffusion(qram_num, anc_num):
+    qram = QuantumRegister(qram_num)
+    anc = QuantumRegister(anc_num)
+    res = QuantumRegister(1)
+    qc = QuantumCircuit(qram, anc, res)
 
+    qc.h(qram)
+    qc.x(qram)
+    qc.append(NOT_gate.custom_mcx(qram_num, anc_num), [*qram, *anc, *res])
+    qc.x(qram)
+    qc.h(qram)
 
-def QFT_dgr(qc, target, target_num):
-    """
-    the inverse of QFT operator
-    :param qc: QuantumCircuit
-    :param target: QuantumRegister
-    :param target_num: integer, the number of q bits
-    """
-    R_phis = [0]
-    for i in np.arange(2, int(target_num + 1)):
-        R_phis.append(-2 / (2 ** i) * m.pi)
-    for j in np.arange(int(target_num)):
-        for k in np.arange(int(j)):
-            qc.cp(R_phis[int(j - k)], target[int(target_num - (k + 1))], target[int(target_num - (j + 1))])
-        qc.h(target[int(target_num - (j + 1))])
+    return qc
 
 
 def Grover_diffusion(qc, control, target, ancilla, control_num):

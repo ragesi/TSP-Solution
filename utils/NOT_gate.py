@@ -29,7 +29,6 @@ def zero_NOT(control_num: int) -> QuantumCircuit:
     """
     if the state of all control bits are True, the target bit is flipped
     :param control_num: integer, the number of control bits
-    :return: QuantumCircuit
     """
     control = QuantumRegister(control_num)
     target = QuantumRegister(1)
@@ -42,7 +41,12 @@ def zero_NOT(control_num: int) -> QuantumCircuit:
     return qc
 
 
-def custom_mcx(control_num, anc_num):
+def custom_mcx(control_num: int, anc_num: int) -> QuantumCircuit:
+    """
+    custom mcx gate, dynamically determine the mode of mcx gate by the number of ancilla bits
+    :param control_num: the number of control bits
+    :param anc_num: the number of ancilla bits, use v-chain mode if ancilla is enough
+    """
     control = QuantumRegister(control_num)
     anc = QuantumRegister(anc_num)
     res = QuantumRegister(1)
@@ -62,7 +66,6 @@ def equal_to_int_NOT(reference_state: int, control_num: int, anc_num: int) -> Qu
     :param reference_state: integer, the expected value of control bits
     :param control_num: integer, the number of control bits
     :param anc_num: integer, the number of ancilla bits
-    :return: QuantumCircuit
     """
     control = QuantumRegister(control_num)
     anc = QuantumRegister(anc_num)
@@ -88,7 +91,6 @@ def equal_NOT(control_num: int) -> QuantumCircuit:
     """
     if the values represented by two quantum registers are equal, flip the target bit
     :param control_num: integer, the number of qubits that to be compared
-    :return: QuantumCircuit
     """
     control1 = QuantumRegister(control_num)
     control2 = QuantumRegister(control_num)

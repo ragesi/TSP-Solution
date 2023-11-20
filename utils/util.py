@@ -22,4 +22,7 @@ def decimal_to_binary(real, qubit_num):
     return res
 
 
-
+def int_to_binary(val, qubit_num):
+    res = bin(val)[2:]
+    res = '0' * (qubit_num - len(res)) + res
+    return res
