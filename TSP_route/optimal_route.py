@@ -1,4 +1,5 @@
 # -*- coding: UTF-8 -*-
+import random
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 import qiskit.circuit.library as lib
@@ -36,8 +37,9 @@ class OptimalRoute:
         self.qram_num = self.step_num * self.choice_bit_num
         # the precision of route distance
         self.precision = 6
-        self.anc_num = max(self.precision, self.choice_bit_num) - 1
+        self.anc_num = self.choice_bit_num - 1
         self.buffer_num = max(self.precision, self.step_num)
+        self.res_num = 3
         self.thresholds = []
         # self.illegal_choice_list = []
         # self.illegal_route_list = []
@@ -95,14 +97,14 @@ class OptimalRoute:
         3. ancilla register: to assist the process of algorithm
         4. result register: to record the result of every stage of algorithm
         """
-        if self.qram_num + self.buffer_num + self.anc_num + 4 > self.total_qubit_num:
+        if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
             raise ValueError("The number of nodes is too much!")
         # for the end node, it doesn't have choice; for the node_list[-2], it only has one choice for the end
-        self.anc_num = max(self.anc_num, self.total_qubit_num - self.qram_num - self.buffer_num - 4)
+        self.anc_num = max(self.anc_num, self.total_qubit_num - self.qram_num - self.buffer_num - self.res_num)
         print("qram_num: ", self.qram_num)
         print("buffer_num: ", self.buffer_num)
         print("anc_num: ", self.anc_num)
-        print("res_num: ", 4)
+        print("res_num: ", self.res_num)
 
         self.qram = QuantumRegister(self.qram_num, name='qram')
         self.buffer = QuantumRegister(self.buffer_num, name='tmp_info')
@@ -158,7 +160,7 @@ class OptimalRoute:
 
         return qc
 
-    def cal_distance(self):
+    def cal_distance_qpe(self):
         """
         to calculate the total distance of every route
         """
@@ -196,40 +198,111 @@ class OptimalRoute:
         res = QuantumRegister(1)
         qc = QuantumCircuit(qram, buffer, anc, res)
 
-        qc.append(self.cal_distance(), [*qram, *buffer, *anc, *res])
+        qc.append(self.cal_distance_qpe(), [*qram, *buffer, *anc, *res])
         qc.append(lib.IntegerComparator(self.precision, threshold, geq=False),
                   [*buffer, *res, *anc[:self.precision - 1]])
 
         return qc
 
-    def grover(self, threshold):
+    def grover_operator(self, threshold):
         """
         an iteration of Grover algorithm
         """
         qram = QuantumRegister(self.qram_num)
         buffer = QuantumRegister(self.buffer_num)
         anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(4)
+        res = QuantumRegister(self.res_num)
         qc = QuantumCircuit(qram, buffer, anc, res)
-        qc.h(qram)
-        qc.x(res[-1])
-        qc.h(res[-1])
 
         # three stage to determine whether the route is valid
-        qc.append(self.check_choice_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-        qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[1]])
-        qc.append(self.check_dist_below_threshold(threshold), [*qram, *buffer[:self.precision], *anc, res[2]])
+        # qc.append(self.check_choice_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        qc.append(self.check_dist_below_threshold(threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
 
         qc.mcx(res[:-1], res[-1], anc[0], mode='v-chain')
 
-        qc.append(self.check_dist_below_threshold(threshold).inverse(), [*qram, *buffer[:self.precision], *anc, res[2]])
-        qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[1]])
-        qc.append(self.check_choice_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        qc.append(self.check_dist_below_threshold(threshold).inverse(), [*qram, *buffer[:self.precision], *anc, res[1]])
+        qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        # qc.append(self.check_choice_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
 
         # grover diffusion
         qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
 
         return qc
+
+    def grover(self, threshold, iter_num):
+        qram = QuantumRegister(self.qram_num)
+        buffer = QuantumRegister(self.buffer_num)
+        anc = QuantumRegister(self.anc_num)
+        res = QuantumRegister(self.res_num)
+        cl = ClassicalRegister(self.qram_num)
+        qc = QuantumCircuit(qram, buffer, anc, res, cl)
+
+        # initialization
+        qc.h(qram)
+        qc.x(res[-1])
+        qc.h(res[-1])
+
+        for _ in np.arange(iter_num):
+            qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
+
+        qc.measure(qram, cl)
+        return list(execute.local_simulator(qc, 1))[0]
+
+    def cal_single_route_dist(self, route):
+        route = self.translate_route(route)
+        dist = 0.0
+        for i in np.arange(len(route)):
+            if i == 0:
+                dist += self.dist_adj[0][route[i]]
+            else:
+                dist += self.dist_adj[route[i - 1]][route[i]]
+        dist += self.end_dists[route[-1]]
+        return dist
+
+    def translate_route(self, bin_route):
+        route = []
+        for i in np.arange(self.step_num):
+            route.append(int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
+        return route
+
+    def QESA(self, threshold):
+        max_iter_num = 1.
+        for i in np.arange(self.step_num, 0, -1):
+            max_iter_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
+        max_iter_num = m.pi / 4.0 / m.asin(max_iter_num)
+        alpha = 6.0 / 5
+
+        iter_num_bound = m.ceil(4.5 * m.sqrt(2 ** self.qram_num))
+        is_finish = True
+        new_threshold = 0.
+        for _ in np.arange(iter_num_bound):
+            iter_num = random.randint(1, int(max_iter_num))
+            new_route = self.grover(threshold, iter_num)
+            new_threshold = self.cal_single_route_dist(new_route)
+
+            if new_threshold < threshold:
+                is_finish = False
+                break
+            else:
+                max_iter_num = min(alpha * max_iter_num, m.sqrt(2 ** self.qram_num))
+
+        return new_threshold, is_finish
+
+    def QMSA(self):
+        threshold = 0.
+        for i in np.arange(len(self.dist_adj)):
+            threshold += self.dist_adj[i][i]
+        threshold += self.end_dists[-1]
+
+        while True:
+            tmp_threshold, is_finish = self.QESA(threshold)
+            if not is_finish:
+                threshold = tmp_threshold
+            else:
+                break
+
+        return threshold
 
     # def main(self):
     #     """
