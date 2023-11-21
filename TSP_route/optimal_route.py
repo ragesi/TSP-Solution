@@ -9,6 +9,7 @@ import math as m
 import cmath as cm
 
 from utils import display_result, NOT_gate, unitary_function as uf, util, execute
+from dataset import test
 
 
 class OptimalRoute:
@@ -24,8 +25,8 @@ class OptimalRoute:
         self.node_num = node_num
         self.node_list = node_list
         # self.dis_adj's size is [node_num - 1, 4], filling 0 to make-up, which excludes the last step's distance
-        self.dist_adj = np.zeros((self.node_num - 1, self.node_num - 2), dtype=complex)
-        self.end_dists = np.zeros(self.node_num - 2, dtype=complex)
+        self.dist_adj = np.zeros((self.node_num - 1, self.node_num - 2))
+        self.end_dists = np.zeros(self.node_num - 2)
         self.total_qubit_num = total_qubit_num
 
         # the number of choices for every step, excluding the start and the end
@@ -63,6 +64,7 @@ class OptimalRoute:
         :param dis_adj: matrix representing the distance between every city
         """
         # calculate the total distance
+        # TODO: 此处将总距离修改为每一部分距离的最大值之和，现在这个距离之和都太小了
         total_distance = 0.0
         for i in np.arange(len(dis_adj)):
             for j in np.arange(i, len(dis_adj[i])):
@@ -219,7 +221,8 @@ class OptimalRoute:
         qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
         qc.append(self.check_dist_below_threshold(threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
 
-        qc.mcx(res[:-1], res[-1], anc[0], mode='v-chain')
+        # qc.cx(res[0], res[-1])
+        qc.ccx(res[0], res[1], res[-1])
 
         qc.append(self.check_dist_below_threshold(threshold).inverse(), [*qram, *buffer[:self.precision], *anc, res[1]])
         qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
@@ -247,10 +250,10 @@ class OptimalRoute:
             qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
 
         qc.measure(qram, cl)
+        # return execute.local_simulator(qc, 1000)
         return list(execute.local_simulator(qc, 1))[0]
 
     def cal_single_route_dist(self, route):
-        route = self.translate_route(route)
         dist = 0.0
         for i in np.arange(len(route)):
             if i == 0:
@@ -266,19 +269,18 @@ class OptimalRoute:
             route.append(int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
         return route
 
-    def QESA(self, threshold):
-        max_iter_num = 1.
-        for i in np.arange(self.step_num, 0, -1):
-            max_iter_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
-        max_iter_num = m.pi / 4.0 / m.asin(max_iter_num)
+    def QESA(self, threshold, max_iter_num):
+        # TODO: 此处要调大alpha，在6个节点的规模下，每次增长1就可以，要不然增长幅度太小；如果接下来规模变大，可以考虑使用比例调整
         alpha = 6.0 / 5
 
         iter_num_bound = m.ceil(4.5 * m.sqrt(2 ** self.qram_num))
         is_finish = True
         new_threshold = 0.
+        new_route = None
         for _ in np.arange(iter_num_bound):
             iter_num = random.randint(1, int(max_iter_num))
             new_route = self.grover(threshold, iter_num)
+            new_route = self.translate_route(new_route)
             new_threshold = self.cal_single_route_dist(new_route)
 
             if new_threshold < threshold:
@@ -287,22 +289,33 @@ class OptimalRoute:
             else:
                 max_iter_num = min(alpha * max_iter_num, m.sqrt(2 ** self.qram_num))
 
-        return new_threshold, is_finish
+        return new_route, new_threshold, is_finish
 
     def QMSA(self):
+        max_iter_num = 1.
+        for i in np.arange(self.step_num, 0, -1):
+            max_iter_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
+        max_iter_num = m.pi / 4.0 / m.asin(max_iter_num)
+        print("max_iter_num: ", max_iter_num)
+
         threshold = 0.
-        for i in np.arange(len(self.dist_adj)):
+        for i in np.arange(len(self.dist_adj) - 1):
             threshold += self.dist_adj[i][i]
         threshold += self.end_dists[-1]
+        print("threshold: ", threshold)
+
+        route = None
 
         while True:
-            tmp_threshold, is_finish = self.QESA(threshold)
+            # TODO: 这里要设置一个迭代的最小值，就是上一次迭代成功的迭代次数，初始化时初始化为2.5
+            tmp_route, tmp_threshold, is_finish = self.QESA(threshold, max_iter_num)
             if not is_finish:
                 threshold = tmp_threshold
+                route = tmp_route
             else:
                 break
 
-        return threshold
+        return route
 
     # def main(self):
     #     """
@@ -338,47 +351,23 @@ class OptimalRoute:
 
 
 if __name__ == '__main__':
-    adj = [[1, 2, 3, 4, 5, 0],
-           [1, 2, 3, 4, 5, 6],
-           [1, 2, 3, 4, 5, 6],
-           [1, 2, 3, 4, 5, 6],
-           [1, 2, 3, 4, 5, 6],
-           [1, 2, 3, 4, 5, 6]]
-    # 2.49次
-    # adj = [[1, 2, 3, 4, 0],
-    #        [1, 2, 3, 4, 5],
-    #        [1, 2, 3, 4, 5],
-    #        [1, 2, 3, 4, 5],
-    #        [1, 2, 3, 4, 5]]
-    # 2.49次
-    # adj = [[1, 2, 3, 0],
-    #        [1, 2, 3, 4],
-    #        [1, 2, 3, 4],
-    #        [1, 2, 3, 4]]
-    # 2.24次
-    # adj = [[1.5, 3.2, 0],
-    #        [0, 2.4, 9],
-    #        [2.4, 0, 1.2]]
-    # adj = [[2, 2.1, 0],
-    #        [0, 2.2, 3],
-    #        [2.2, 0, 2.4]]
-    # adj = [[2, 2, 0],
-    #        [0, 2, 2],
-    #        [2, 0, 2]]
-    test = OptimalRoute(7, [0, 1, 2, 3, 4, 5, 6], adj, 40)
-    # test.qc.append(test.check_choice_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
-    test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[1]])
-    print(test.qc.depth())
-    test.qc.measure([*test.qram, test.res[1]], test.cl)
-    # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=1000)
-    output = execute.sampler_run('simulator_mps', 1, 2, test.qc, 1000)
-    output = dict(output)
-    output = {util.int_to_binary(key, test.qram_num + 1): val for key, val in output.items()}
-    print(output)
-    num = 0
-    for item in output.items():
-        if item[0][0] == '1':
-            print(item)
-            num += 1
-    print(num)
-    # test.main()
+    test_adj = test.test_for_6
+    test = OptimalRoute(6, [0, 1, 2, 3, 4, 5, 6], test_adj, 27)
+    print(test.dist_adj)
+    # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
+    route = test.QMSA()
+    print(route)
+    # test.qc.measure([*test.qram, test.res[0]], test.cl)
+    # output = execute.local_simulator(test.qc, 1000)
+    # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=2000)
+    # output = execute.sampler_run('simulator_mps', 1, 2, test.qc, 1000)
+    # output = dict(output)
+    # output = {util.int_to_binary(key, test.qram_num + 1): val for key, val in output.items()}
+    # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+    # print(output)
+    # num = 0
+    # for item in output.items():
+    #     if item[0][0] == '1':
+    #         print(item)
+    #         num += 1
+    # print(num)

@@ -16,10 +16,11 @@ def build_U_operator(qubit_num: int, dists: np.ndarray) -> UnitaryGate:
     :param qubit_num: integer, the number of qubits that are implemented by the unitary operator
     :param dists: the distance between the n-th node and any other node
     """
+    dists_complex = dists + 0j
     matrix = np.eye(2 ** qubit_num, dtype=complex)
     for i in np.arange(len(dists)):
         tmp = i + 2 ** (qubit_num - 1)
-        matrix[tmp][tmp] = cm.exp(1j * 2.0 * m.pi * dists[i])
+        matrix[tmp][tmp] = cm.exp(1j * 2.0 * m.pi * dists_complex[i])
     u_gate = lib.UnitaryGate(matrix)
 
     return u_gate
