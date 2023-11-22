@@ -21,27 +21,34 @@ def build_U_operator(qubit_num: int, dists: np.ndarray) -> UnitaryGate:
     for i in np.arange(len(dists)):
         tmp = i + 2 ** (qubit_num - 1)
         matrix[tmp][tmp] = cm.exp(1j * 2.0 * m.pi * dists_complex[i])
+    print(matrix)
     u_gate = lib.UnitaryGate(matrix)
 
     return u_gate
 
 
-def QPE_U(control_num: int, target_num: int, dists: np.ndarray) -> QuantumCircuit:
+def QPE_U(control_num: int, target_num: int, dists: np.ndarray, anc_num: int) -> QuantumCircuit:
     """
     the unitary operator in QPE, which is used to add the distance of every step
     :param control_num: integer, the number of control bits
     :param target_num: integer, the number of target bits
     :param dists: the n-th row in the distance adjacency whose size is 1 * n,
                   representing the distance between the n-th node and any other node
+    :param anc_num: integer, the number of ancilla bits
     """
     control = QuantumRegister(control_num)
     target = QuantumRegister(target_num)
-    qc = QuantumCircuit(control, target)
+    anc = QuantumRegister(anc_num)
+    qc = QuantumCircuit(control, target, anc)
 
-    u_gate = build_U_operator(target_num + 1, dists)
-    for i in np.arange(control_num):
-        for _ in np.arange(2 ** (control_num - i - 1)):
-            qc.append(u_gate, [control[i], *target])
+    for i in np.arange(len(dists)):
+        qc.append(NOT_gate.equal_to_int_NOT(i, target_num, anc_num - 1), [*target, *anc[1:], anc[0]])
+
+        for j in np.arange(control_num):
+            for _ in np.arange(2 ** (control_num - j - 1)):
+                qc.cp(2.0 * m.pi * dists[i], control[j], anc[0])
+
+        qc.append(NOT_gate.equal_to_int_NOT(i, target_num, anc_num - 1).inverse(), [*target, *anc[1:], anc[0]])
 
     return qc
 
@@ -61,16 +68,20 @@ def custom_QPE_U(control_num: int, per_qram_num: int, anc_num: int, dist_adj: np
     qc = QuantumCircuit(control, source, target, anc)
 
     for i in np.arange(len(dist_adj)):
-        u_gate = build_U_operator(per_qram_num + 1, dist_adj[i])
-        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 1), [*source, *anc[1:], anc[0]])
-        qc.ccx(control[i], anc[0], anc[1])
+        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 2), [*source, *anc[2:], anc[0]])
 
-        for j in np.arange(control_num):
-            for _ in np.arange(2 ** (control_num - j - 1)):
-                qc.append(u_gate, [anc[1], *target])
+        for j in np.arange(len(dist_adj[i])):
+            qc.append(NOT_gate.equal_to_int_NOT(j, per_qram_num, anc_num - 2), [*target, *anc[2:], anc[1]])
 
-        qc.ccx(control[i], anc[0], anc[1])
-        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 1), [*source, *anc[1:], anc[0]])
+            for k in np.arange(control_num):
+                qc.ccx(anc[0], control[k], anc[2])
+                for _ in np.arange(2 ** (control_num - k - 1)):
+                    qc.cp(2.0 * m.pi * dist_adj[i][j], anc[2], anc[1])
+                qc.ccx(anc[0], control[k], anc[2])
+
+            qc.append(NOT_gate.equal_to_int_NOT(j, per_qram_num, anc_num - 2).inverse(), [*target, *anc[2:], anc[1]])
+
+        qc.append(NOT_gate.equal_to_int_NOT(i, per_qram_num, anc_num - 2).inverse(), [*source, *anc[2:], anc[0]])
 
     return qc
 
