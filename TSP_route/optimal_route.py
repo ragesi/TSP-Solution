@@ -66,8 +66,11 @@ class OptimalRoute:
         """
         # calculate the total distance
         total_distance = 0.0
-        for i in np.arange(len(dist_adj) - 1):
-            total_distance += max(dist_adj[i][i: -1])
+        for i in np.arange(len(dist_adj)):
+            if i > 0:
+                dist_adj[i][i - 1] = max(dist_adj[i])
+            if i < len(dist_adj) - 1:
+                total_distance += max(dist_adj[i][i: -1])
         total_distance += max([row[-1] for row in dist_adj])
 
         # normalize the adjacency matrix to 2.0 * m.pi / (2 ** precision)
@@ -200,9 +203,9 @@ class OptimalRoute:
         qc.append(lib.IntegerComparator(self.precision, threshold, geq=False),
                   [*buffer, *anc[:self.precision]])
         qc.cx(anc[0], res[0])
-        qc.append(lib.IntegerComparator(self.precision, threshold, geq=False).inverse(),
-                  [*buffer, *anc[:self.precision]])
-        qc.append(self.cal_distance_qpe().inverse(), [*qram, *buffer, *anc])
+        # qc.append(lib.IntegerComparator(self.precision, threshold, geq=False).inverse(),
+        #           [*buffer, *anc[:self.precision]])
+        # qc.append(self.cal_distance_qpe().inverse(), [*qram, *buffer, *anc])
 
         return qc
 
@@ -250,8 +253,8 @@ class OptimalRoute:
             qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
 
         qc.measure(qram, cl)
-        return execute.local_simulator(qc, 1000)
-        # return list(execute.local_simulator(qc, 1))[0]
+        # return execute.local_simulator(qc, 1000)
+        return list(execute.local_simulator(qc, 1))[0]
 
     def cal_single_route_dist(self, route):
         dist = 0.0
@@ -264,6 +267,7 @@ class OptimalRoute:
         return dist
 
     def translate_route(self, bin_route):
+        bin_route = bin_route[::-1]
         route = []
         for i in np.arange(self.step_num):
             route.append(int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
@@ -303,7 +307,7 @@ class OptimalRoute:
         threshold = 0.
         for i in np.arange(len(self.dist_adj) - 1):
             threshold += self.dist_adj[i][i]
-        threshold += self.end_dists[-1] + 1.0 / 64
+        threshold += self.end_dists[-1]
         threshold = min(threshold, 1.0 - (1.0 / 64))
         threshold *= 2 ** self.precision
         print("threshold: ", threshold)
@@ -321,62 +325,45 @@ class OptimalRoute:
 
         return route
 
-    # def main(self):
-    #     """
-    #     the entire process of choose optimal route
-    #     """
-    #     # TODO: 此处需要计算阈值，但因为距离数据已经经过了区间映射和归一化，所以不知道阈值设置多少合适，留待以后处理
-    #     iter_times = round(m.sqrt(len(self.q_choice)))
-    #     iter_times = 2
-    #     print("iter_times: ", iter_times)
-    #
-    #     for i in np.arange(iter_times):
-    #         self.Grover(threshold=self.thresholds[0])
-    #
-    #     for i in np.arange(len(self.q_choice)):
-    #         self.qc.measure(self.q_choice[i], self.c[i])
-    #     self.qc.measure(self.q_result[1], self.c[-1])
-    #     # TODO：此处根据阈值和执行情况设置shots次数
-    #     val = display_result.Measurement(self.qc, return_M=True, print_M=False, shots=100)
-    #     print(len(val))
-    #     print(val)
-    #     num = 0
-    #     max_item = ""
-    #     # all_one_num = 0
-    #     for item in val.items():
-    #         if item[1] > num:
-    #             num = item[1]
-    #             max_item = item[0]
-    #     #     if item[0][-1] == '1':
-    #     #         print(item)
-    #     #         all_one_num += 1
-    #     # print("all_one_num: ", all_one_num)
-    #     print(max_item, num)
-
 
 if __name__ == '__main__':
-    test_adj = test.test_for_4
-    test = OptimalRoute(4, [0, 1, 2, 3], test_adj, 27)
+    test_adj = test.test_for_5
+    test = OptimalRoute(5, [0, 1, 2, 3, 4], test_adj, 27)
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
-    test.qc.append(test.check_dist_below_threshold(55), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
-    test.qc.measure([*test.qram, test.res[1]], test.cl)
-    output = execute.local_simulator(test.qc, 1000)
-    num = 0
-    for item in output.items():
-        if item[0][0] == '1':
-            print(item)
-            num += 1
-    print(num)
+    # test.qc.append(test.check_dist_below_threshold(61), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
+    # test.qc.measure([*test.qram, test.res[1]], test.cl)
+    # output = execute.local_simulator(test.qc, 1000)
+
+    # qram = QuantumRegister(2)
+    # buffer = QuantumRegister(6)
+    # anc = QuantumRegister(16)
+    # res = QuantumRegister(3)
+    # cl = ClassicalRegister(6)
+    # qc = QuantumCircuit(qram, buffer, anc, res, cl)
+    # qc.x(qram[1])
+    # qc.append(test.cal_distance_qpe(), [*qram, *buffer, *anc])
+    # qc.measure(buffer, cl)
+    # output = execute.local_simulator(qc, 1000)
+    # print(output)
+    # num = 0
+    # for item in output.items():
+    #     if item[0][0] == '1':
+    #         print(item)
+    #         num += 1
+    # print(num)
 
     # start_time = time.time()
-    # output = test.grover(54, 1)
+    # output = test.grover(61, 1)
     # end_time = time.time()
     # print("time: ", end_time - start_time)
     # print(output)
-    # route = test.QMSA()
-    # print(route)
+    start_time = time.time()
+    route = test.QMSA()
+    end_time = time.time()
+    print("time: ", end_time - start_time)
+    print(route)
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
     # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=2000)
