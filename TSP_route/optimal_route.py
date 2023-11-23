@@ -3,6 +3,7 @@ import random
 import time
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 import qiskit.circuit.library as lib
 
 import numpy as np
@@ -58,6 +59,15 @@ class OptimalRoute:
         # # get the parameter of algorithm, which is used in each iteration
         # self.get_illegal_choice_param()
         # self.get_illegal_route_param()
+
+        self.options = Options()
+        self.options.optimization_level = 0
+        self.options.resilience_level = 0
+        service = QiskitRuntimeService()
+        # backend = 'ibmq_qasm_simulator'
+        backend = 'ibm_brisbane'
+        self.session = Session(service=service, backend=backend)
+        self.sampler = Sampler(session=self.session, options=self.options)
 
     def init_dis_adj(self, dist_adj):
         """
@@ -251,7 +261,12 @@ class OptimalRoute:
 
         qc.measure(qram, cl)
         # return execute.local_simulator(qc, 1000)
-        return list(execute.local_simulator(qc, 1))[0]
+        # return list(execute.local_simulator(qc, 1))[0]
+        job = self.sampler.run(circuits=qc, shots=1)
+        output = list(job.result().quasi_dists[0])[0]
+        output = util.int_to_binary(output, self.qram_num)
+        print(output)
+        return output
 
     def cal_single_route_dist(self, route):
         dist = 0.0
@@ -367,6 +382,7 @@ if __name__ == '__main__':
     end_time = time.time()
     print("time: ", end_time - start_time)
     print(route)
+    test.session.close()
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
     # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=2000)
