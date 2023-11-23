@@ -66,12 +66,9 @@ class OptimalRoute:
         """
         # calculate the total distance
         total_distance = 0.0
-        for i in np.arange(len(dist_adj)):
-            if i > 0:
-                dist_adj[i][i - 1] = max(dist_adj[i])
-            if i < len(dist_adj) - 1:
-                total_distance += max(dist_adj[i][i: -1])
-        total_distance += max([row[-1] for row in dist_adj])
+        for i in np.arange(len(dist_adj) - 1):
+            total_distance += max(dist_adj[i][i: -1])
+        total_distance += max([row[-1] for row in dist_adj]) + 1
 
         # normalize the adjacency matrix to 2.0 * m.pi / (2 ** precision)
         base_num = 2 ** self.precision
@@ -200,7 +197,7 @@ class OptimalRoute:
         # qc.append(lib.IntegerComparator(self.precision, threshold, geq=False),
         #           [*buffer, *res, *anc[:self.precision - 1]])
         qc.append(self.cal_distance_qpe(), [*qram, *buffer, *anc])
-        qc.append(lib.IntegerComparator(self.precision, threshold, geq=False),
+        qc.append(lib.IntegerComparator(self.precision, threshold, geq=True),
                   [*buffer, *anc[:self.precision]])
         qc.cx(anc[0], res[0])
         # qc.append(lib.IntegerComparator(self.precision, threshold, geq=False).inverse(),
@@ -259,40 +256,46 @@ class OptimalRoute:
     def cal_single_route_dist(self, route):
         dist = 0.0
         for i in np.arange(len(route)):
-            if i == 0:
+            if route[i] >= self.choice_num or (i > 0 and route[i - 1] >= self.choice_num):
+                continue
+            elif i == 0:
                 dist += self.dist_adj[0][route[i]]
             else:
                 dist += self.dist_adj[route[i - 1] + 1][route[i]]
-        dist += self.end_dists[route[-1]]
+        dist += self.end_dists[route[-1]] if route[-1] < self.choice_num else 0
+        dist *= 2 ** self.precision
         return dist
 
     def translate_route(self, bin_route):
-        bin_route = bin_route[::-1]
         route = []
         for i in np.arange(self.step_num):
-            route.append(int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
+            route.insert(0, int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
         return route
 
     def QESA(self, threshold, min_iter_num):
-        # TODO: 此处要调大alpha，在6个节点的规模下，每次增长1就可以，要不然增长幅度太小；如果接下来规模变大，可以考虑使用比例调整
         alpha = 6.0 / 5
         max_iter_num = min_iter_num
 
-        iter_num_bound = m.ceil(4.5 * m.sqrt(2 ** self.qram_num))
+        # iter_num_bound = round(9.0 * m.pi / 8.0 * m.sqrt(2 ** self.qram_num))
+        iter_num_bound = round(m.log(m.factorial(self.choice_num), alpha)) + 5
+        print("iter_num_bound: ", iter_num_bound)
         is_finish = True
         new_threshold = 0.
         new_route = None
         for _ in np.arange(iter_num_bound):
             iter_num = random.randint(int(min_iter_num), int(max_iter_num))
+            print("iter_num: ", iter_num)
             new_route = self.grover(threshold, iter_num)
             new_route = self.translate_route(new_route)
             new_threshold = self.cal_single_route_dist(new_route)
+            print("new_route: ", new_route)
 
-            if new_threshold < threshold:
+            if new_threshold > threshold:
                 is_finish = False
+                print("new_threshold: ", new_threshold)
                 break
             else:
-                max_iter_num = min(alpha * max_iter_num, m.sqrt(2 ** self.qram_num))
+                max_iter_num = min(alpha * max_iter_num, m.pi / 4.0 * m.sqrt(2 ** self.qram_num))
 
         return new_route, new_threshold, is_finish, max_iter_num
 
@@ -302,7 +305,7 @@ class OptimalRoute:
             min_iter_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
         min_iter_num = m.pi / 4.0 / m.asin(min_iter_num)
         min_iter_num = max(1.0, min_iter_num)
-        print("min_iter_num: ", min_iter_num)
+        print("iter_num: ", min_iter_num)
 
         threshold = 0.
         for i in np.arange(len(self.dist_adj) - 1):
@@ -312,7 +315,7 @@ class OptimalRoute:
         threshold *= 2 ** self.precision
         print("threshold: ", threshold)
 
-        route = None
+        route = [i for i in np.arange(self.step_num)]
 
         while True:
             tmp_route, tmp_threshold, is_finish, tmp_iter_num = self.QESA(threshold, min_iter_num)
@@ -332,7 +335,7 @@ if __name__ == '__main__':
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
-    # test.qc.append(test.check_dist_below_threshold(61), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
+    # test.qc.append(test.check_dist_below_threshold(53), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
     # test.qc.measure([*test.qram, test.res[1]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
 
