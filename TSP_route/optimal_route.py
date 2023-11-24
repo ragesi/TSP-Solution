@@ -61,8 +61,8 @@ class OptimalRoute:
         # self.get_illegal_route_param()
 
         self.options = Options()
-        self.options.optimization_level = 0
-        self.options.resilience_level = 0
+        self.options.optimization_level = 2
+        self.options.resilience_level = 1
         service = QiskitRuntimeService()
         # backend = 'ibmq_qasm_simulator'
         backend = 'ibm_brisbane'
@@ -265,7 +265,6 @@ class OptimalRoute:
         job = self.sampler.run(circuits=qc, shots=1)
         output = list(job.result().quasi_dists[0])[0]
         output = util.int_to_binary(output, self.qram_num)
-        print(output)
         return output
 
     def cal_single_route_dist(self, route):
@@ -293,13 +292,11 @@ class OptimalRoute:
 
         # iter_num_bound = round(9.0 * m.pi / 8.0 * m.sqrt(2 ** self.qram_num))
         iter_num_bound = round(m.log(m.factorial(self.choice_num), alpha)) + 5
-        print("iter_num_bound: ", iter_num_bound)
         is_finish = True
         new_threshold = 0.
         new_route = None
         for _ in np.arange(iter_num_bound):
             iter_num = random.randint(int(min_iter_num), int(max_iter_num))
-            print("iter_num: ", iter_num)
             new_route = self.grover(threshold, iter_num)
             new_route = self.translate_route(new_route)
             new_threshold = self.cal_single_route_dist(new_route)
