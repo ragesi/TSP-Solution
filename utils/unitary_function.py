@@ -10,23 +10,6 @@ from qiskit.circuit.library import UnitaryGate
 from utils import NOT_gate
 
 
-def build_U_operator(qubit_num: int, dists: np.ndarray) -> UnitaryGate:
-    """
-    build the unitary operator that is used in the QPE algorithm
-    :param qubit_num: integer, the number of qubits that are implemented by the unitary operator
-    :param dists: the distance between the n-th node and any other node
-    """
-    dists_complex = dists + 0j
-    matrix = np.eye(2 ** qubit_num, dtype=complex)
-    for i in np.arange(len(dists)):
-        tmp = i + 2 ** (qubit_num - 1)
-        matrix[tmp][tmp] = cm.exp(1j * 2.0 * m.pi * dists_complex[i])
-    print(matrix)
-    u_gate = lib.UnitaryGate(matrix)
-
-    return u_gate
-
-
 def QPE_U(control_num: int, target_num: int, dists: np.ndarray, anc_num: int) -> QuantumCircuit:
     """
     the unitary operator in QPE, which is used to add the distance of every step
@@ -99,22 +82,6 @@ def grover_diffusion(qram_num, anc_num):
     qc.h(qram)
 
     return qc
-
-
-def Grover_diffusion(qc, control, target, ancilla, control_num):
-    """
-    the amplitude amplification part of Grover
-    :param qc: QuantumCircuit
-    :param control: QuantumRegister
-    :param target: QuantumRegister[int]
-    :param ancilla: QuantumRegister[int], need (control_num - 1) bits
-    :param control_num: integer, the number of control bits
-    """
-    for i in np.arange(control_num):
-        qc.h(control[i])
-    NOT_gate.zero_NOT(qc, control, target, ancilla, control_num)
-    for i in np.arange(control_num - 1, -1, -1):
-        qc.h(control[i])
 
 
 def inner_product():

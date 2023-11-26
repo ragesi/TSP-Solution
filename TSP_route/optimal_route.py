@@ -61,7 +61,7 @@ class OptimalRoute:
         # self.get_illegal_route_param()
 
         self.options = Options()
-        self.options.optimization_level = 2
+        self.options.optimization_level = 0
         self.options.resilience_level = 1
         service = QiskitRuntimeService()
         # backend = 'ibmq_qasm_simulator'
@@ -123,30 +123,6 @@ class OptimalRoute:
         self.qc.x(self.res[-1])
         self.qc.h(self.res[-1])
 
-    def check_choice_validity(self):
-        """
-        determine whether the choice of every step is less than the number of nodes that can be chosen
-        :return: QuantumCircuit
-        """
-        qram = QuantumRegister(self.qram_num)
-        buffer = QuantumRegister(self.step_num)
-        anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(1)
-        qc = QuantumCircuit(qram, buffer, anc, res)
-
-        # integer comparator
-        for i in np.arange(self.step_num):
-            qc.append(lib.IntegerComparator(self.choice_bit_num, self.choice_num, False),
-                      [*qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], buffer[i],
-                       *anc[:(self.choice_bit_num - 1)]])
-        qc.append(NOT_gate.custom_mcx(self.step_num, self.anc_num), [*buffer, *anc, *res])
-        for i in np.arange(self.step_num - 1, -1, -1):
-            qc.append(lib.IntegerComparator(self.choice_bit_num, self.choice_num, False).inverse(),
-                      [*qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], buffer[i],
-                       *anc[:(self.choice_bit_num - 1)]])
-
-        return qc
-
     def check_route_validity(self):
         qram = QuantumRegister(self.qram_num)
         buffer = QuantumRegister(self.step_num)
@@ -163,6 +139,66 @@ class OptimalRoute:
             for j in np.arange(self.choice_num - 1, -1, -1):
                 qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num).inverse(),
                           [*qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], *anc, buffer[j]])
+
+        return qc
+
+    def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
+        control = QuantumRegister(self.precision)
+        target = QuantumRegister(self.choice_bit_num)
+        anc = QuantumRegister(self.anc_num)
+        qc = QuantumCircuit(control, target, anc)
+
+        for i in np.arange(len(dists)):
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1), [*target, *anc[1:], anc[0]])
+
+            for j in np.arange(self.precision):
+                for _ in np.arange(2 ** (self.precision - j - 1)):
+                    qc.cp(2.0 * m.pi * dists[i], control[j], anc[0])
+
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1).inverse(),
+                      [*target, *anc[1:], anc[0]])
+
+        return qc
+
+    def custom_qpe_u(self, dist_adj: np.ndarray) -> QuantumCircuit:
+        control = QuantumRegister(self.precision)
+        source = QuantumRegister(self.choice_bit_num)
+        target = QuantumRegister(self.choice_bit_num)
+        anc = QuantumRegister(self.anc_num)
+        qc = QuantumCircuit(control, source, target, anc)
+
+        for i in np.arange(len(dist_adj)):
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2), [*source, *anc[2:], anc[0]])
+
+            for j in np.arange(len(dist_adj[i])):
+                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2),
+                          [*target, *anc[2:], anc[1]])
+
+                for k in np.arange(self.precision):
+                    qc.ccx(anc[0], control[k], anc[2])
+                    for _ in np.arange(2 ** (self.precision - k - 1)):
+                        qc.cp(2.0 * m.pi * dist_adj[i][j], anc[2], anc[1])
+                    qc.ccx(anc[0], control[k], anc[2])
+
+                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2).inverse(),
+                          [*target, *anc[2:], anc[1]])
+
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2).inverse(),
+                      [*source, *anc[2:], anc[0]])
+
+        return qc
+
+    def grover_diffusion(self):
+        qram = QuantumRegister(self.qram_num)
+        anc = QuantumRegister(self.anc_num)
+        res = QuantumRegister(1)
+        qc = QuantumCircuit(qram, anc, res)
+
+        qc.h(qram)
+        qc.x(qram)
+        qc.append(NOT_gate.custom_mcx(self.qram_num, self.anc_num), [*qram, *anc, *res])
+        qc.x(qram)
+        qc.h(qram)
 
         return qc
 
