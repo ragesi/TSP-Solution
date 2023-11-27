@@ -26,9 +26,6 @@ class OptimalRoute:
         # the number of nodes in the route
         self.node_num = node_num
         self.node_list = node_list
-        # self.dis_adj's size is [node_num - 1, 4], filling 0 to make-up, which excludes the last step's distance
-        self.dist_adj = np.zeros((self.node_num - 1, self.node_num - 2))
-        self.end_dists = np.zeros(self.node_num - 2)
         self.total_qubit_num = total_qubit_num
 
         # the number of choices for every step, excluding the start and the end
@@ -40,12 +37,14 @@ class OptimalRoute:
         self.qram_num = self.step_num * self.choice_bit_num
         # the precision of route distance
         self.precision = 6
-        self.anc_num = self.choice_bit_num - 1
+        self.anc_num = self.precision - 1
         self.buffer_num = max(self.precision, self.step_num)
         self.res_num = 3
         self.thresholds = []
-        # self.illegal_choice_list = []
-        # self.illegal_route_list = []
+
+        # the distance adjacency
+        self.dist_adj = np.zeros((self.node_num - 1, 2 ** self.choice_bit_num))
+        self.end_dists = np.zeros(2 ** self.choice_bit_num)
 
         self.qram = None
         self.buffer = None
@@ -60,14 +59,14 @@ class OptimalRoute:
         # self.get_illegal_choice_param()
         # self.get_illegal_route_param()
 
-        self.options = Options()
-        self.options.optimization_level = 0
-        self.options.resilience_level = 1
-        service = QiskitRuntimeService()
-        # backend = 'ibmq_qasm_simulator'
-        backend = 'ibm_brisbane'
-        self.session = Session(service=service, backend=backend)
-        self.sampler = Sampler(session=self.session, options=self.options)
+        # self.options = Options()
+        # self.options.optimization_level = 0
+        # self.options.resilience_level = 1
+        # service = QiskitRuntimeService()
+        # # backend = 'ibmq_qasm_simulator'
+        # backend = 'ibm_brisbane'
+        # self.session = Session(service=service, backend=backend)
+        # self.sampler = Sampler(session=self.session, options=self.options)
 
     def init_dis_adj(self, dist_adj):
         """
@@ -142,49 +141,53 @@ class OptimalRoute:
 
         return qc
 
-    def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
-        control = QuantumRegister(self.precision)
-        target = QuantumRegister(self.choice_bit_num)
-        anc = QuantumRegister(self.anc_num)
+    def qpe_u(self, dists: np.ndarray, target_num: int, anc_num: int) -> QuantumCircuit:
+        control = QuantumRegister(1)
+        target = QuantumRegister(target_num)
+        anc = QuantumRegister(anc_num)
         qc = QuantumCircuit(control, target, anc)
 
-        for i in np.arange(len(dists)):
-            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1), [*target, *anc[1:], anc[0]])
+        if target_num < 2:
+            qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[0])
+            qc.p(2.0 * m.pi * dists[0], control)
+            return qc
+        elif target_num == 2:
+            qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[1])
+            qc.p(2.0 * m.pi * dists[0], control)
+            qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
 
-            for j in np.arange(self.precision):
-                for _ in np.arange(2 ** (self.precision - j - 1)):
-                    qc.cp(2.0 * m.pi * dists[i], control[j], anc[0])
+            delta_dists = 2.0 * m.pi * (dists[3] - dists[1] - dists[2] + dists[0])
+            qc.ccx(control, target[1], anc[0])
+            qc.cp(delta_dists, anc[0], target[0])
+            qc.ccx(control, target[1], anc[0])
+            return qc
+        else:
+            for i in np.arange(2 ** (target_num - 2)):
+                reference_state = i + 2 ** target_num
+                qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1),
+                          [*target[2:], control[0], *anc[1:], anc[0]])
 
-            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1).inverse(),
-                      [*target, *anc[1:], anc[0]])
+                qc.append(self.qpe_u(dists[i * 4: (i + 1) * 4], 2, anc_num - 1), [anc[0], target[:2], anc[1:]])
 
-        return qc
+                qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1).inverse(),
+                          [*target[2:], control[0], *anc[1:], anc[0]])
 
     def custom_qpe_u(self, dist_adj: np.ndarray) -> QuantumCircuit:
-        control = QuantumRegister(self.precision)
+        control = QuantumRegister(1)
         source = QuantumRegister(self.choice_bit_num)
         target = QuantumRegister(self.choice_bit_num)
         anc = QuantumRegister(self.anc_num)
         qc = QuantumCircuit(control, source, target, anc)
 
         for i in np.arange(len(dist_adj)):
-            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2), [*source, *anc[2:], anc[0]])
+            reference_state = i + 2 ** self.choice_bit_num
+            qc.append(NOT_gate.equal_to_int_NOT(reference_state, self.choice_bit_num + 1, self.anc_num - 1),
+                      [*source, control[0], *anc[1:], anc[0]])
 
-            for j in np.arange(len(dist_adj[i])):
-                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2),
-                          [*target, *anc[2:], anc[1]])
+            qc.append(self.qpe_u(dist_adj[i], self.choice_bit_num, self.anc_num - 1), [anc[0], *target, *anc[1:]])
 
-                for k in np.arange(self.precision):
-                    qc.ccx(anc[0], control[k], anc[2])
-                    for _ in np.arange(2 ** (self.precision - k - 1)):
-                        qc.cp(2.0 * m.pi * dist_adj[i][j], anc[2], anc[1])
-                    qc.ccx(anc[0], control[k], anc[2])
-
-                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2).inverse(),
-                          [*target, *anc[2:], anc[1]])
-
-            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2).inverse(),
-                      [*source, *anc[2:], anc[0]])
+            qc.append(NOT_gate.equal_to_int_NOT(reference_state, self.choice_bit_num + 1, self.anc_num - 1).inverse(),
+                      [*source, control[0], *anc[1:], anc[0]])
 
         return qc
 
@@ -214,16 +217,19 @@ class OptimalRoute:
         # QPE
         qc.h(buffer)
         # for every step
-        for i in np.arange(self.step_num):
-            if i == 0:
-                qc.append(uf.QPE_U(self.precision, self.choice_bit_num, self.dist_adj[0], self.anc_num),
-                          [*buffer, *qram[:self.choice_bit_num], *anc])
-            else:
-                qc.append(uf.custom_QPE_U(self.precision, self.choice_bit_num, self.anc_num, self.dist_adj[1:]),
-                          [*buffer, *qram[(i - 1) * self.choice_bit_num: (i + 1) * self.choice_bit_num], *anc])
-        # the last step which is not shown in the self.step_num
-        qc.append(uf.QPE_U(self.precision, self.choice_bit_num, self.end_dists, self.anc_num),
-                  [*buffer, *qram[-self.choice_bit_num:], *anc])
+        for i in np.arange(self.precision):
+            for _ in np.arange(2 ** (self.precision - i - 1)):
+                for j in np.arange(self.step_num):
+                    if j == 0:
+                        qc.append(self.qpe_u(self.dist_adj[j], self.choice_bit_num, self.anc_num),
+                                  [buffer[i], *qram[:self.choice_bit_num], *anc])
+                    else:
+                        qc.append(self.custom_qpe_u(self.dist_adj[1:]),
+                                  [buffer[i], *qram[(j - 1) * self.choice_bit_num: (j + 1) * self.choice_bit_num],
+                                   *anc])
+                qc.append(self.qpe_u(self.end_dists, self.choice_bit_num, self.anc_num),
+                          [buffer[i], *qram[-self.choice_bit_num:], *anc])
+
         qc.append(lib.QFT(self.precision, do_swaps=False, inverse=True), buffer)
 
         return qc
@@ -239,16 +245,9 @@ class OptimalRoute:
         res = QuantumRegister(1)
         qc = QuantumCircuit(qram, buffer, anc, res)
 
-        # qc.append(self.cal_distance_qpe(), [*qram, *buffer, *anc, *res])
-        # qc.append(lib.IntegerComparator(self.precision, threshold, geq=False),
-        #           [*buffer, *res, *anc[:self.precision - 1]])
         qc.append(self.cal_distance_qpe(), [*qram, *buffer, *anc])
         qc.append(lib.IntegerComparator(self.precision, threshold, geq=True),
-                  [*buffer, *anc[:self.precision]])
-        qc.cx(anc[0], res[0])
-        # qc.append(lib.IntegerComparator(self.precision, threshold, geq=False).inverse(),
-        #           [*buffer, *anc[:self.precision]])
-        # qc.append(self.cal_distance_qpe().inverse(), [*qram, *buffer, *anc])
+                  [*buffer, *res, *anc[:self.precision - 1]])
 
         return qc
 
@@ -263,7 +262,6 @@ class OptimalRoute:
         qc = QuantumCircuit(qram, buffer, anc, res)
 
         # three stage to determine whether the route is valid
-        # qc.append(self.check_choice_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
         qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
         qc.append(self.check_dist_below_threshold(threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
 
@@ -272,7 +270,6 @@ class OptimalRoute:
 
         qc.append(self.check_dist_below_threshold(threshold).inverse(), [*qram, *buffer[:self.precision], *anc, res[1]])
         qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-        # qc.append(self.check_choice_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
 
         # grover diffusion
         qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
@@ -296,12 +293,14 @@ class OptimalRoute:
             qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
 
         qc.measure(qram, cl)
-        # return execute.local_simulator(qc, 1000)
-        # return list(execute.local_simulator(qc, 1))[0]
-        job = self.sampler.run(circuits=qc, shots=1)
-        output = list(job.result().quasi_dists[0])[0]
-        output = util.int_to_binary(output, self.qram_num)
-        return output
+        return execute.local_simulator(qc, 10)
+        # job = self.sampler.run(circuits=qc, shots=10)
+        # output = job.result().quasi_dists[0]
+        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+        # return output[0][0]
+        # output = list(job.result().quasi_dists[0])[0]
+        # output = util.int_to_binary(output, self.qram_num)
+        # return output
 
     def cal_single_route_dist(self, route):
         dist = 0.0
@@ -327,7 +326,7 @@ class OptimalRoute:
         max_iter_num = min_iter_num
 
         # iter_num_bound = round(9.0 * m.pi / 8.0 * m.sqrt(2 ** self.qram_num))
-        iter_num_bound = round(m.log(m.factorial(self.choice_num), alpha)) + 5
+        iter_num_bound = round(m.log(m.sqrt(m.factorial(self.choice_num)), alpha))
         is_finish = True
         new_threshold = 0.
         new_route = None
@@ -358,7 +357,7 @@ class OptimalRoute:
         threshold = 0.
         for i in np.arange(len(self.dist_adj) - 1):
             threshold += self.dist_adj[i][i]
-        threshold += self.end_dists[-1]
+        threshold += self.end_dists[self.choice_num - 1]
         threshold = min(threshold, 1.0 - (1.0 / 64))
         threshold *= 2 ** self.precision
         print("threshold: ", threshold)
@@ -387,17 +386,25 @@ if __name__ == '__main__':
     # test.qc.measure([*test.qram, test.res[1]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
 
-    # qram = QuantumRegister(2)
-    # buffer = QuantumRegister(6)
-    # anc = QuantumRegister(16)
-    # res = QuantumRegister(3)
-    # cl = ClassicalRegister(6)
-    # qc = QuantumCircuit(qram, buffer, anc, res, cl)
-    # qc.x(qram[1])
+    dists = [0.390625, 0., 0., 0.]
+    qram = QuantumRegister(6)
+    buffer = QuantumRegister(6)
+    anc = QuantumRegister(12)
+    res = QuantumRegister(3)
+    cl1 = ClassicalRegister(6)
+    # cl2 = ClassicalRegister(6)
+    qc = QuantumCircuit(qram, buffer, anc, res, cl1)
+    qc.x([qram[2], qram[5]])
+    qc.h(buffer)
+    for i in np.arange(6):
+        for _ in np.arange(2 ** (6 - i - 1)):
+            qc.append(test.qpe_u(dists, 2, 12), [buffer[i], *qram[0: 2], *anc])
+    qc.append(lib.QFT(6, do_swaps=False, inverse=True), buffer)
     # qc.append(test.cal_distance_qpe(), [*qram, *buffer, *anc])
-    # qc.measure(buffer, cl)
-    # output = execute.local_simulator(qc, 1000)
-    # print(output)
+    # qc.measure(qram, cl1)
+    qc.measure(buffer, cl1)
+    output = execute.local_simulator(qc, 100)
+    print(output)
     # num = 0
     # for item in output.items():
     #     if item[0][0] == '1':
@@ -410,12 +417,14 @@ if __name__ == '__main__':
     # end_time = time.time()
     # print("time: ", end_time - start_time)
     # print(output)
-    start_time = time.time()
-    route = test.QMSA()
-    end_time = time.time()
-    print("time: ", end_time - start_time)
-    print(route)
-    test.session.close()
+
+    # start_time = time.time()
+    # route = test.QMSA()
+    # end_time = time.time()
+    # print("time: ", end_time - start_time)
+    # print(route)
+    # test.session.close()
+
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
     # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=2000)
