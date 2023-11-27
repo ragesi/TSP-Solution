@@ -272,7 +272,7 @@ class OptimalRoute:
         qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
 
         # grover diffusion
-        qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
+        qc.append(self.grover_diffusion(), [*qram, *anc, res[-1]])
 
         return qc
 
@@ -293,11 +293,11 @@ class OptimalRoute:
             qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
 
         qc.measure(qram, cl)
-        return execute.local_simulator(qc, 10)
+        output = execute.local_simulator(qc, 5)
         # job = self.sampler.run(circuits=qc, shots=10)
         # output = job.result().quasi_dists[0]
-        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-        # return output[0][0]
+        output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+        return util.int_to_binary(output[0][0], self.qram_num)
         # output = list(job.result().quasi_dists[0])[0]
         # output = util.int_to_binary(output, self.qram_num)
         # return output
@@ -327,6 +327,7 @@ class OptimalRoute:
 
         # iter_num_bound = round(9.0 * m.pi / 8.0 * m.sqrt(2 ** self.qram_num))
         iter_num_bound = round(m.log(m.sqrt(m.factorial(self.choice_num)), alpha))
+        print("iter_num_bound: ", iter_num_bound)
         is_finish = True
         new_threshold = 0.
         new_route = None
@@ -386,25 +387,20 @@ if __name__ == '__main__':
     # test.qc.measure([*test.qram, test.res[1]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
 
-    dists = [0.390625, 0., 0., 0.]
-    qram = QuantumRegister(6)
-    buffer = QuantumRegister(6)
-    anc = QuantumRegister(12)
-    res = QuantumRegister(3)
-    cl1 = ClassicalRegister(6)
-    # cl2 = ClassicalRegister(6)
-    qc = QuantumCircuit(qram, buffer, anc, res, cl1)
-    qc.x([qram[2], qram[5]])
-    qc.h(buffer)
-    for i in np.arange(6):
-        for _ in np.arange(2 ** (6 - i - 1)):
-            qc.append(test.qpe_u(dists, 2, 12), [buffer[i], *qram[0: 2], *anc])
-    qc.append(lib.QFT(6, do_swaps=False, inverse=True), buffer)
+    # dists = [0.390625, 0., 0., 0.]
+    # qram = QuantumRegister(6)
+    # buffer = QuantumRegister(6)
+    # anc = QuantumRegister(12)
+    # res = QuantumRegister(3)
+    # cl1 = ClassicalRegister(6)
+    # # cl2 = ClassicalRegister(6)
+    # qc = QuantumCircuit(qram, buffer, anc, res, cl1)
+    # qc.x([qram[2], qram[5]])
     # qc.append(test.cal_distance_qpe(), [*qram, *buffer, *anc])
-    # qc.measure(qram, cl1)
-    qc.measure(buffer, cl1)
-    output = execute.local_simulator(qc, 100)
-    print(output)
+    # # qc.measure(qram, cl1)
+    # qc.measure(buffer, cl1)
+    # output = execute.local_simulator(qc, 10)
+    # print(output)
     # num = 0
     # for item in output.items():
     #     if item[0][0] == '1':
@@ -418,11 +414,11 @@ if __name__ == '__main__':
     # print("time: ", end_time - start_time)
     # print(output)
 
-    # start_time = time.time()
-    # route = test.QMSA()
-    # end_time = time.time()
-    # print("time: ", end_time - start_time)
-    # print(route)
+    start_time = time.time()
+    route = test.QMSA()
+    end_time = time.time()
+    print("time: ", end_time - start_time)
+    print(route)
     # test.session.close()
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)

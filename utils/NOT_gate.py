@@ -1,8 +1,6 @@
 # -*- coding: UTF-8 -*-
 from qiskit import QuantumRegister, QuantumCircuit
-import qiskit.circuit.library as lib
 
-from typing import Optional
 import numpy as np
 
 
