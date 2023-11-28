@@ -122,8 +122,8 @@ class OptimalRoute:
         options.optimization_level = 0
         options.resilience_level = 1
         service = QiskitRuntimeService()
-        backend = 'ibmq_qasm_simulator'
-        # backend = 'ibm_brisbane'
+        # backend = 'ibmq_qasm_simulator'
+        backend = 'ibm_brisbane'
         self.session = Session(service=service, backend=backend)
         self.sampler = Sampler(session=self.session, options=options)
 
@@ -299,8 +299,8 @@ class OptimalRoute:
         buffer = QuantumRegister(self.buffer_num)
         anc = QuantumRegister(self.anc_num)
         res = QuantumRegister(self.res_num)
-        cl = [ClassicalRegister(self.choice_bit_num) for _ in np.arange(self.step_num)]
-        qc = QuantumCircuit(qram, buffer, anc, res, *cl)
+        cl = ClassicalRegister(self.qram_num)
+        qc = QuantumCircuit(qram, buffer, anc, res, cl)
         # initialization
         qc.h(qram)
         qc.x(res[-1])
@@ -309,7 +309,7 @@ class OptimalRoute:
         max_iter_bound = m.pi / 4.0 * m.sqrt(2 ** self.qram_num)
 
         qc_list = []
-        for i in np.arange(int(self.grover_iter_min_num)):
+        for i in np.arange(int(self.grover_iter_min_num) + 1):
             tmp_qram = QuantumRegister(self.qram_num)
             tmp_buffer = QuantumRegister(self.buffer_num)
             tmp_anc = QuantumRegister(self.anc_num)
@@ -321,10 +321,11 @@ class OptimalRoute:
                 tmp_qc.append(self.check_route_validity().inverse(),
                               [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
                 tmp_qc.append(self.grover_diffusion(), [*tmp_qram, *tmp_anc, tmp_res[-1]])
-            if i < self.grover_iter_min_num - 1:
+            if i < int(self.grover_iter_min_num):
                 tmp_qc.append(self.check_route_validity(),
                               [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
                 tmp_qc.append(self.cal_distance_qpe(), [*tmp_qram, *tmp_buffer[:self.precision], *tmp_anc])
+            # print(tmp_qc)
             qc_list.append(tmp_qc)
 
         if self.job is not None:
@@ -365,9 +366,8 @@ class OptimalRoute:
             qc.append(self.grover_operator(), [*qram, *buffer, *anc, *res])
 
         # print(qc)
-        for i in np.arange(self.step_num):
-            qc.measure(qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], cl[-1 - i])
-        self.job = self.sampler.run(circuits=qc, shots=10)
+        qc.measure(qram, cl)
+        self.job = self.sampler.run(circuits=qc, shots=1000)
         self.async_grover()
 
     def check_dist_below_threshold(self, threshold):
