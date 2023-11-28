@@ -24,14 +24,13 @@ class OptimalRoute:
         """
         # TODO: 处理node_list的映射关系
         # the number of nodes in the route
-        self.node_num = node_num
         self.node_list = node_list
         self.total_qubit_num = total_qubit_num
 
         # the number of choices for every step, excluding the start and the end
-        self.choice_num = self.node_num - 2
+        self.choice_num = node_num - 2
         # the number of steps that have choices
-        self.step_num = self.node_num - 2
+        self.step_num = node_num - 2
         # the number of choice encoding bits in binary
         self.choice_bit_num = m.ceil(1.0 * m.log2(self.choice_num))
         self.qram_num = self.step_num * self.choice_bit_num
@@ -40,35 +39,28 @@ class OptimalRoute:
         self.anc_num = self.precision - 1
         self.buffer_num = max(self.precision, self.step_num)
         self.res_num = 3
-        self.thresholds = []
+
+        # the parameters for the process of Grover algorithm
+        self.threshold = 0.0
+        self.path = [i for i in np.arange(self.step_num)]
+        self.grover_iter_min_num = 1.0
+        self.grover_iter_max_num = 1.0
+        self.alpha = 6.0 / 5
+        self.grover_repeat_num = 0
 
         # the distance adjacency
-        self.dist_adj = np.zeros((self.node_num - 1, 2 ** self.choice_bit_num))
+        self.dist_adj = np.zeros((node_num - 1, 2 ** self.choice_bit_num))
         self.end_dists = np.zeros(2 ** self.choice_bit_num)
 
-        self.qram = None
-        self.buffer = None
-        self.anc = None
-        self.res = None
-        self.cl = None
-        self.qc = None
+        # run on the IBM Quantum Platform
+        self.session = None
+        self.sampler = None
+        self.job = None
 
-        self.init_dis_adj(dist_adj)
-        self.init_circuit()
-        # # get the parameter of algorithm, which is used in each iteration
-        # self.get_illegal_choice_param()
-        # self.get_illegal_route_param()
+        # initialize all parameters for Grover algorithm
+        self.init_grover_param(dist_adj)
 
-        # self.options = Options()
-        # self.options.optimization_level = 0
-        # self.options.resilience_level = 1
-        # service = QiskitRuntimeService()
-        # # backend = 'ibmq_qasm_simulator'
-        # backend = 'ibm_brisbane'
-        # self.session = Session(service=service, backend=backend)
-        # self.sampler = Sampler(session=self.session, options=self.options)
-
-    def init_dis_adj(self, dist_adj):
+    def init_dist_adj(self, dist_adj):
         """
         the distance matrix's preprocessing
         :param dist_adj: matrix representing the distance between every city
@@ -92,42 +84,55 @@ class OptimalRoute:
                 continue
             self.end_dists[i - 1] = dist_adj[i].pop()
         # make up the rest of adjacency matrix
-        self.dist_adj[:, :self.node_num - 2] = dist_adj
+        self.dist_adj[:, :self.choice_num] = dist_adj
 
-    def init_circuit(self):
-        """
-        init the quantum circuit for detecting the legal route, which has 4 parts
-        1. choice register: store the choice of every step
-        2. detail register: store the temporary info of processing
-        3. ancilla register: to assist the process of algorithm
-        4. result register: to record the result of every stage of algorithm
-        """
+    def init_grover_param(self, dist_adj):
+        # adjust the number of bits of every quantum register
         if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
             raise ValueError("The number of nodes is too much!")
-        # for the end node, it doesn't have choice; for the node_list[-2], it only has one choice for the end
         self.anc_num = max(self.anc_num, self.total_qubit_num - self.qram_num - self.buffer_num - self.res_num)
         print("qram_num: ", self.qram_num)
         print("buffer_num: ", self.buffer_num)
         print("anc_num: ", self.anc_num)
         print("res_num: ", self.res_num)
 
-        self.qram = QuantumRegister(self.qram_num, name='qram')
-        self.buffer = QuantumRegister(self.buffer_num, name='tmp_info')
-        self.anc = QuantumRegister(self.anc_num, name='anc')
-        self.res = QuantumRegister(4, name='res')
-        self.cl = ClassicalRegister(self.qram_num + 1, name='c')
-        self.qc = QuantumCircuit(self.qram, self.buffer, self.anc, self.res, self.cl)
+        self.init_dist_adj(dist_adj)
 
-        self.qc.h(self.qram)
-        self.qc.x(self.res[-1])
-        self.qc.h(self.res[-1])
+        # initialize the threshold
+        for i in np.arange(len(self.dist_adj) - 1):
+            self.threshold += self.dist_adj[i][i]
+        self.threshold += self.end_dists[self.choice_num - 1]
+        self.threshold = min(self.threshold, 1.0 - (1.0 / 64))
+        self.threshold *= 2 ** self.precision
+        print("threshold: ", self.threshold)
+
+        # initialize the number of iterations for Grover algorithm
+        for i in np.arange(self.step_num, 0, -1):
+            self.grover_iter_min_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
+        self.grover_iter_min_num = m.pi / 4.0 / m.asin(self.grover_iter_min_num)
+        self.grover_iter_min_num = max(1.0, self.grover_iter_min_num)
+        self.grover_iter_max_num = self.grover_iter_min_num
+        print("iter_num: ", self.grover_iter_min_num)
+
+        # initialize the number of repetitions of Grover algorithm
+        self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
+
+        # get connection to IBM Quantum Platform
+        options = Options()
+        options.optimization_level = 0
+        options.resilience_level = 1
+        service = QiskitRuntimeService()
+        backend = 'ibmq_qasm_simulator'
+        # backend = 'ibm_brisbane'
+        self.session = Session(service=service, backend=backend)
+        self.sampler = Sampler(session=self.session, options=options)
 
     def check_route_validity(self):
         qram = QuantumRegister(self.qram_num)
         buffer = QuantumRegister(self.step_num)
         anc = QuantumRegister(self.anc_num)
         res = QuantumRegister(1)
-        qc = QuantumCircuit(qram, buffer, anc, res)
+        qc = QuantumCircuit(qram, buffer, anc, res, name='check_route_validity')
 
         for i in np.arange(self.step_num):
             for j in np.arange(self.choice_num):
@@ -141,53 +146,115 @@ class OptimalRoute:
 
         return qc
 
-    def qpe_u(self, dists: np.ndarray, target_num: int, anc_num: int) -> QuantumCircuit:
-        control = QuantumRegister(1)
-        target = QuantumRegister(target_num)
-        anc = QuantumRegister(anc_num)
+    # the recursion method of QPE
+    # def qpe_u_operator(self, dists: np.ndarray, target_num: int, anc_num: int) -> QuantumCircuit:
+    #     control = QuantumRegister(1)
+    #     target = QuantumRegister(target_num)
+    #     anc = QuantumRegister(anc_num)
+    #     qc = QuantumCircuit(control, target, anc)
+    #
+    #     if target_num < 2:
+    #         qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
+    #         qc.p(2.0 * m.pi * dists[0], control)
+    #         return qc
+    #     elif target_num == 2:
+    #         qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[1])
+    #         qc.p(2.0 * m.pi * dists[0], control)
+    #         qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
+    #
+    #         delta_dists = 2.0 * m.pi * (dists[3] - dists[1] - dists[2] + dists[0])
+    #         qc.ccx(control, target[1], anc[0])
+    #         qc.cp(delta_dists, anc[0], target[0])
+    #         qc.ccx(control, target[1], anc[0])
+    #         return qc
+    #     else:
+    #         for i in np.arange(2 ** (target_num - 2)):
+    #             reference_state = i + 2 ** target_num
+    #             qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1),
+    #                       [*target[2:], control[0], *anc[1:], anc[0]])
+    #
+    #             qc.append(self.qpe_u_operator(dists[i * 4: (i + 1) * 4], 2, anc_num - 1), [anc[0], target[:2], anc[1:]])
+    #
+    #             qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1).inverse(),
+    #                       [*target[2:], control[0], *anc[1:], anc[0]])
+    #
+    # def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
+    #     control = QuantumRegister(self.precision)
+    #     target = QuantumRegister(self.choice_bit_num)
+    #     anc = QuantumRegister(self.anc_num)
+    #     qc = QuantumCircuit(control, target, anc)
+    #
+    #     for i in np.arange(self.precision):
+    #         for _ in np.arange(2 ** (self.precision - i - 1)):
+    #             qc.append(self.qpe_u_operator(dists, self.choice_bit_num, self.anc_num), [control[i], *target, *anc])
+    #
+    #     return qc
+    #
+    # def custom_qpe_u(self, dist_adj: np.ndarray) -> QuantumCircuit:
+    #     control = QuantumRegister(self.precision)
+    #     source = QuantumRegister(self.choice_bit_num)
+    #     target = QuantumRegister(self.choice_bit_num)
+    #     anc = QuantumRegister(self.anc_num)
+    #     qc = QuantumCircuit(control, source, target, anc)
+    #
+    #     for i in np.arange(len(dist_adj)):
+    #         for j in np.arange(self.precision):
+    #             ref_state = i + 2 ** self.choice_bit_num
+    #             qc.append(NOT_gate.equal_to_int_NOT(ref_state, self.choice_bit_num + 1, self.anc_num - 1),
+    #                       [*source, control[j], *anc[1:], anc[0]])
+    #
+    #             for _ in np.arange(2 ** (self.precision - j - 1)):
+    #                 qc.append(self.qpe_u_operator(dist_adj[i], self.choice_bit_num, self.anc_num - 1),
+    #                           [anc[0], *target, *anc[1:]])
+    #
+    #             qc.append(NOT_gate.equal_to_int_NOT(ref_state, self.choice_bit_num + 1, self.anc_num - 1).inverse(),
+    #                       [*source, control[j], *anc[1:], anc[0]])
+    #
+    #     return qc
+
+    def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
+        control = QuantumRegister(self.precision)
+        target = QuantumRegister(self.choice_bit_num)
+        anc = QuantumRegister(self.anc_num)
         qc = QuantumCircuit(control, target, anc)
 
-        if target_num < 2:
-            qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[0])
-            qc.p(2.0 * m.pi * dists[0], control)
-            return qc
-        elif target_num == 2:
-            qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[1])
-            qc.p(2.0 * m.pi * dists[0], control)
-            qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
+        for i in np.arange(len(dists)):
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1), [*target, *anc[1:], anc[0]])
 
-            delta_dists = 2.0 * m.pi * (dists[3] - dists[1] - dists[2] + dists[0])
-            qc.ccx(control, target[1], anc[0])
-            qc.cp(delta_dists, anc[0], target[0])
-            qc.ccx(control, target[1], anc[0])
-            return qc
-        else:
-            for i in np.arange(2 ** (target_num - 2)):
-                reference_state = i + 2 ** target_num
-                qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1),
-                          [*target[2:], control[0], *anc[1:], anc[0]])
+            for j in np.arange(self.precision):
+                for _ in np.arange(2 ** (self.precision - j - 1)):
+                    qc.cp(2.0 * m.pi * dists[i], control[j], anc[0])
 
-                qc.append(self.qpe_u(dists[i * 4: (i + 1) * 4], 2, anc_num - 1), [anc[0], target[:2], anc[1:]])
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 1).inverse(),
+                      [*target, *anc[1:], anc[0]])
 
-                qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1).inverse(),
-                          [*target[2:], control[0], *anc[1:], anc[0]])
+        return qc
 
     def custom_qpe_u(self, dist_adj: np.ndarray) -> QuantumCircuit:
-        control = QuantumRegister(1)
+        control = QuantumRegister(self.precision)
         source = QuantumRegister(self.choice_bit_num)
         target = QuantumRegister(self.choice_bit_num)
         anc = QuantumRegister(self.anc_num)
         qc = QuantumCircuit(control, source, target, anc)
 
         for i in np.arange(len(dist_adj)):
-            reference_state = i + 2 ** self.choice_bit_num
-            qc.append(NOT_gate.equal_to_int_NOT(reference_state, self.choice_bit_num + 1, self.anc_num - 1),
-                      [*source, control[0], *anc[1:], anc[0]])
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2), [*source, *anc[2:], anc[0]])
 
-            qc.append(self.qpe_u(dist_adj[i], self.choice_bit_num, self.anc_num - 1), [anc[0], *target, *anc[1:]])
+            for j in np.arange(len(dist_adj[i])):
+                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2),
+                          [*target, *anc[2:], anc[1]])
 
-            qc.append(NOT_gate.equal_to_int_NOT(reference_state, self.choice_bit_num + 1, self.anc_num - 1).inverse(),
-                      [*source, control[0], *anc[1:], anc[0]])
+                for k in np.arange(self.precision):
+                    qc.ccx(anc[0], control[k], anc[2])
+                    for _ in np.arange(2 ** (self.precision - k - 1)):
+                        qc.cp(2.0 * m.pi * dist_adj[i][j], anc[2], anc[1])
+                    qc.ccx(anc[0], control[k], anc[2])
+
+                qc.append(NOT_gate.equal_to_int_NOT(j, self.choice_bit_num, self.anc_num - 2).inverse(),
+                          [*target, *anc[2:], anc[1]])
+
+            qc.append(NOT_gate.equal_to_int_NOT(i, self.choice_bit_num, self.anc_num - 2).inverse(),
+                      [*source, *anc[2:], anc[0]])
 
         return qc
 
@@ -195,7 +262,7 @@ class OptimalRoute:
         qram = QuantumRegister(self.qram_num)
         anc = QuantumRegister(self.anc_num)
         res = QuantumRegister(1)
-        qc = QuantumCircuit(qram, anc, res)
+        qc = QuantumCircuit(qram, anc, res, name='grover_diffusion')
 
         qc.h(qram)
         qc.x(qram)
@@ -212,27 +279,96 @@ class OptimalRoute:
         qram = QuantumRegister(self.qram_num)
         buffer = QuantumRegister(self.precision)
         anc = QuantumRegister(self.anc_num)
-        qc = QuantumCircuit(qram, buffer, anc)
-
+        qc = QuantumCircuit(qram, buffer, anc, name='cal_distance_qpe')
         # QPE
         qc.h(buffer)
         # for every step
-        for i in np.arange(self.precision):
-            for _ in np.arange(2 ** (self.precision - i - 1)):
-                for j in np.arange(self.step_num):
-                    if j == 0:
-                        qc.append(self.qpe_u(self.dist_adj[j], self.choice_bit_num, self.anc_num),
-                                  [buffer[i], *qram[:self.choice_bit_num], *anc])
-                    else:
-                        qc.append(self.custom_qpe_u(self.dist_adj[1:]),
-                                  [buffer[i], *qram[(j - 1) * self.choice_bit_num: (j + 1) * self.choice_bit_num],
-                                   *anc])
-                qc.append(self.qpe_u(self.end_dists, self.choice_bit_num, self.anc_num),
-                          [buffer[i], *qram[-self.choice_bit_num:], *anc])
-
+        for i in np.arange(self.step_num):
+            if i == 0:
+                qc.append(self.qpe_u(self.dist_adj[0]), [*buffer, *qram[:self.choice_bit_num], *anc])
+            else:
+                qc.append(self.custom_qpe_u(self.dist_adj[1:]),
+                          [*buffer, *qram[(i - 1) * self.choice_bit_num: (i + 1) * self.choice_bit_num], *anc])
+        # the last step which is not shown in the self.step_num
+        qc.append(self.qpe_u(self.end_dists), [*buffer, *qram[-self.choice_bit_num:], *anc])
         qc.append(lib.QFT(self.precision, do_swaps=False, inverse=True), buffer)
-
         return qc
+
+    def async_grover(self):
+        qram = QuantumRegister(self.qram_num)
+        buffer = QuantumRegister(self.buffer_num)
+        anc = QuantumRegister(self.anc_num)
+        res = QuantumRegister(self.res_num)
+        cl = [ClassicalRegister(self.choice_bit_num) for _ in np.arange(self.step_num)]
+        qc = QuantumCircuit(qram, buffer, anc, res, *cl)
+        # initialization
+        qc.h(qram)
+        qc.x(res[-1])
+        qc.h(res[-1])
+
+        max_iter_bound = m.pi / 4.0 * m.sqrt(2 ** self.qram_num)
+
+        qc_list = []
+        for i in np.arange(int(self.grover_iter_min_num)):
+            tmp_qram = QuantumRegister(self.qram_num)
+            tmp_buffer = QuantumRegister(self.buffer_num)
+            tmp_anc = QuantumRegister(self.anc_num)
+            tmp_res = QuantumRegister(self.res_num)
+            tmp_qc = QuantumCircuit(tmp_qram, tmp_buffer, tmp_anc, tmp_res, name='tmp_qc_'+str(i))
+
+            if i > 0:
+                tmp_qc.append(self.cal_distance_qpe().inverse(), [*tmp_qram, *tmp_buffer[:self.precision], *tmp_anc])
+                tmp_qc.append(self.check_route_validity().inverse(),
+                              [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
+                tmp_qc.append(self.grover_diffusion(), [*tmp_qram, *tmp_anc, tmp_res[-1]])
+            if i < self.grover_iter_min_num - 1:
+                tmp_qc.append(self.check_route_validity(),
+                              [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
+                tmp_qc.append(self.cal_distance_qpe(), [*tmp_qram, *tmp_buffer[:self.precision], *tmp_anc])
+            qc_list.append(tmp_qc)
+
+        if self.job is not None:
+            output = self.job.result().quasi_dists[0]
+            output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+            output = util.int_to_binary(output[0][0], self.qram_num)
+            new_path = self.translate_route(output)
+            new_threshold = self.cal_single_route_dist(new_path)
+            print("new_path: ", new_path)
+
+            if new_threshold > self.threshold:
+                self.threshold = new_threshold
+                self.path = new_path
+                self.grover_iter_min_num = min(self.grover_iter_max_num * 1.4, max_iter_bound)
+                self.grover_iter_max_num = self.grover_iter_min_num
+                self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
+                print("new_threshold: ", new_threshold)
+            else:
+                self.grover_repeat_num -= 1
+                self.grover_iter_max_num = min(self.alpha * self.grover_iter_max_num, max_iter_bound)
+        if self.grover_repeat_num == 0:
+            self.session.close()
+            return
+
+        qc.append(qc_list[0], [i for i in np.arange(self.total_qubit_num)])
+        for i in np.arange(1, len(qc_list)):
+            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
+                      [*buffer, res[1], *anc[:self.precision - 1]])
+            qc.ccx(res[0], res[1], res[-1])
+            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True).inverse(),
+                      [*buffer, res[1], *anc[:self.precision - 1]])
+            qc.append(qc_list[i], [j for j in np.arange(self.total_qubit_num)])
+
+        extra_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
+        extra_iter_num -= int(self.grover_iter_min_num)
+        while extra_iter_num > 0:
+            extra_iter_num -= 1
+            qc.append(self.grover_operator(), [*qram, *buffer, *anc, *res])
+
+        # print(qc)
+        for i in np.arange(self.step_num):
+            qc.measure(qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], cl[-1 - i])
+        self.job = self.sampler.run(circuits=qc, shots=10)
+        self.async_grover()
 
     def check_dist_below_threshold(self, threshold):
         """
@@ -251,7 +387,7 @@ class OptimalRoute:
 
         return qc
 
-    def grover_operator(self, threshold):
+    def grover_operator(self):
         """
         an iteration of Grover algorithm
         """
@@ -259,19 +395,21 @@ class OptimalRoute:
         buffer = QuantumRegister(self.buffer_num)
         anc = QuantumRegister(self.anc_num)
         res = QuantumRegister(self.res_num)
-        qc = QuantumCircuit(qram, buffer, anc, res)
+        qc = QuantumCircuit(qram, buffer, anc, res, name='grover_operator')
 
         # three stage to determine whether the route is valid
         qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-        qc.append(self.check_dist_below_threshold(threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
+        qc.append(self.check_dist_below_threshold(self.threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
 
-        # qc.cx(res[1], res[-1])
+        # qc.cx(res[0], res[-1])
         qc.ccx(res[0], res[1], res[-1])
 
-        qc.append(self.check_dist_below_threshold(threshold).inverse(), [*qram, *buffer[:self.precision], *anc, res[1]])
+        qc.append(self.check_dist_below_threshold(self.threshold).inverse(),
+                  [*qram, *buffer[:self.precision], *anc, res[1]])
         qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
 
         # grover diffusion
+        # qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
         qc.append(self.grover_diffusion(), [*qram, *anc, res[-1]])
 
         return qc
@@ -293,14 +431,16 @@ class OptimalRoute:
             qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
 
         qc.measure(qram, cl)
-        output = execute.local_simulator(qc, 5)
-        # job = self.sampler.run(circuits=qc, shots=10)
+        # output = execute.local_simulator(qc, 10)
+        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+        # return output[0][0]
+
+        self.job = self.sampler.run(circuits=qc, shots=10)
         # output = job.result().quasi_dists[0]
-        output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-        return util.int_to_binary(output[0][0], self.qram_num)
-        # output = list(job.result().quasi_dists[0])[0]
-        # output = util.int_to_binary(output, self.qram_num)
-        # return output
+        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+        # return util.int_to_binary(output[0][0], self.qram_num)
+
+    qc = QuantumCircuit(1)
 
     def cal_single_route_dist(self, route):
         dist = 0.0
@@ -370,7 +510,7 @@ class OptimalRoute:
             if not is_finish:
                 threshold = tmp_threshold
                 route = tmp_route
-                min_iter_num = tmp_iter_num
+                min_iter_num = min(tmp_iter_num + 1, m.pi / 4.0 * m.sqrt(2 ** self.qram_num))
             else:
                 break
 
@@ -384,7 +524,7 @@ if __name__ == '__main__':
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
     # test.qc.append(test.check_dist_below_threshold(53), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
-    # test.qc.measure([*test.qram, test.res[1]], test.cl)
+    # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
 
     # dists = [0.390625, 0., 0., 0.]
@@ -409,17 +549,19 @@ if __name__ == '__main__':
     # print(num)
 
     # start_time = time.time()
-    # output = test.grover(61, 1)
+    # output = test.grover(48, 2)
     # end_time = time.time()
     # print("time: ", end_time - start_time)
+    # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
     # print(output)
 
     start_time = time.time()
-    route = test.QMSA()
+    test.async_grover()
     end_time = time.time()
     print("time: ", end_time - start_time)
-    print(route)
-    # test.session.close()
+    path = test.path
+    print(path)
+    test.session.close()
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
