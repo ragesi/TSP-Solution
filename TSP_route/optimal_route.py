@@ -15,18 +15,12 @@ from dataset import test
 
 
 class OptimalRoute:
-    def __init__(self, node_num, node_list, dist_adj, total_qubit_num):
+    def __init__(self, node_num, dist_adj, total_qubit_num):
         """
         :param node_num: the number of cities in the route
-        :param node_list: the list of cities' id,
-                          the first element must be the start of route, and the last element must be the end
         :param dist_adj: the distance adjacency matrix of nodes, whose size is [node_num - 1, node_num - 1]
         """
-        # TODO: 处理node_list的映射关系
-        # the number of nodes in the route
-        self.node_list = node_list
         self.total_qubit_num = total_qubit_num
-
         # the number of choices for every step, excluding the start and the end
         self.choice_num = node_num - 2
         # the number of steps that have choices
@@ -520,7 +514,7 @@ class OptimalRoute:
 
 if __name__ == '__main__':
     test_adj = test.test_for_5
-    test = OptimalRoute(5, [0, 1, 2, 3, 4], test_adj, 27)
+    test = OptimalRoute(5, test_adj, 27)
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
