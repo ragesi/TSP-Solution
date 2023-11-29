@@ -36,8 +36,6 @@ class QMeans:
         x_range, y_range = QMeans.get_range(self.points)
         delta_x = 1.0 * (x_range[1] - x_range[0]) / min(self.cluster_num + 1, 4)
         delta_y = 1.0 * (y_range[1] - y_range[0]) / min(self.cluster_num + 1, 4)
-        proportion_x = []
-        proportion_y = []
         if self.cluster_num < 4:
             # linear distribution of center points
             proportion_x = list(range(1, self.cluster_num + 1))

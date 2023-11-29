@@ -2,7 +2,7 @@
 import random
 import time
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Aer, execute
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 import qiskit.circuit.library as lib
 
@@ -10,7 +10,7 @@ import numpy as np
 import math as m
 import cmath as cm
 
-from utils import display_result, NOT_gate, unitary_function as uf, util, execute
+from utils import display_result, NOT_gate, unitary_function as uf, util
 from dataset import test
 
 
@@ -65,17 +65,17 @@ class OptimalRoute:
         the distance matrix's preprocessing
         :param dist_adj: matrix representing the distance between every city
         """
-        # calculate the total distance
-        total_distance = 0.0
+        # calculate the max distance
+        max_dist = 0.0
         for i in np.arange(len(dist_adj) - 1):
-            total_distance += max(dist_adj[i][i: -1])
-        total_distance += max([row[-1] for row in dist_adj]) + 1
+            max_dist += max(dist_adj[i][i: -1])
+        max_dist += max([row[-1] for row in dist_adj]) + 1
 
         # normalize the adjacency matrix to 2.0 * m.pi / (2 ** precision)
         base_num = 2 ** self.precision
         for i in np.arange(len(dist_adj)):
             for j in np.arange(len(dist_adj[i])):
-                dist_adj[i][j] = round(1.0 * dist_adj[i][j] / total_distance * base_num) / base_num
+                dist_adj[i][j] = round(1.0 * dist_adj[i][j] / max_dist * base_num) / base_num
 
         # make up the last step's distance
         for i in np.arange(len(dist_adj)):
@@ -123,6 +123,7 @@ class OptimalRoute:
         options.resilience_level = 1
         service = QiskitRuntimeService()
         # backend = 'ibmq_qasm_simulator'
+        # backend = 'simulator_statevector'
         backend = 'ibm_brisbane'
         self.session = Session(service=service, backend=backend)
         self.sampler = Sampler(session=self.session, options=options)
@@ -294,6 +295,23 @@ class OptimalRoute:
         qc.append(lib.QFT(self.precision, do_swaps=False, inverse=True), buffer)
         return qc
 
+    def build_partial_circuit(self):
+        qram = QuantumRegister(self.qram_num)
+        buffer = QuantumRegister(self.buffer_num)
+        anc = QuantumRegister(self.anc_num)
+        res = QuantumRegister(self.res_num)
+        qc_start = QuantumCircuit(qram, buffer, anc, res, name='qc_start')
+        qc_end = QuantumCircuit(qram, buffer, anc, res, name='qc_end')
+
+        qc_start.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        qc_start.append(self.cal_distance_qpe(), [*qram, *buffer[:self.precision], *anc])
+
+        qc_end.append(self.cal_distance_qpe().inverse(), [*qram, *buffer[:self.precision], *anc])
+        qc_end.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
+        qc_end.append(self.grover_diffusion(), [*qram, *anc, res[-1]])
+
+        return qc_start, qc_end
+
     def async_grover(self):
         qram = QuantumRegister(self.qram_num)
         buffer = QuantumRegister(self.buffer_num)
@@ -308,39 +326,25 @@ class OptimalRoute:
 
         max_iter_bound = m.pi / 4.0 * m.sqrt(2 ** self.qram_num)
 
-        qc_list = []
-        for i in np.arange(int(self.grover_iter_min_num) + 1):
-            tmp_qram = QuantumRegister(self.qram_num)
-            tmp_buffer = QuantumRegister(self.buffer_num)
-            tmp_anc = QuantumRegister(self.anc_num)
-            tmp_res = QuantumRegister(self.res_num)
-            tmp_qc = QuantumCircuit(tmp_qram, tmp_buffer, tmp_anc, tmp_res, name='tmp_qc_'+str(i))
-
-            if i > 0:
-                tmp_qc.append(self.cal_distance_qpe().inverse(), [*tmp_qram, *tmp_buffer[:self.precision], *tmp_anc])
-                tmp_qc.append(self.check_route_validity().inverse(),
-                              [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
-                tmp_qc.append(self.grover_diffusion(), [*tmp_qram, *tmp_anc, tmp_res[-1]])
-            if i < int(self.grover_iter_min_num):
-                tmp_qc.append(self.check_route_validity(),
-                              [*tmp_qram, *tmp_buffer[:self.step_num], *tmp_anc, tmp_res[0]])
-                tmp_qc.append(self.cal_distance_qpe(), [*tmp_qram, *tmp_buffer[:self.precision], *tmp_anc])
-            # print(tmp_qc)
-            qc_list.append(tmp_qc)
+        qc_start, qc_end = self.build_partial_circuit()
+        # print(qc_start)
+        # print(qc_end)
 
         if self.job is not None:
             output = self.job.result().quasi_dists[0]
+            # output = self.job.result().get_counts()
             output = sorted(output.items(), key=lambda item: item[1], reverse=True)
             output = util.int_to_binary(output[0][0], self.qram_num)
             new_path = self.translate_route(output)
+            # new_path = self.translate_route(output[0][0])
             new_threshold = self.cal_single_route_dist(new_path)
             print("new_path: ", new_path)
 
             if new_threshold > self.threshold:
                 self.threshold = new_threshold
                 self.path = new_path
-                self.grover_iter_min_num = min(self.grover_iter_max_num * 1.4, max_iter_bound)
-                self.grover_iter_max_num = self.grover_iter_min_num
+                self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
+                self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
                 self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
                 print("new_threshold: ", new_threshold)
             else:
@@ -350,23 +354,22 @@ class OptimalRoute:
             self.session.close()
             return
 
-        qc.append(qc_list[0], [i for i in np.arange(self.total_qubit_num)])
-        for i in np.arange(1, len(qc_list)):
+        cur_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
+        print("cur_iter_num: ", cur_iter_num)
+        for _ in range(cur_iter_num):
+            qc.append(qc_start, [i for i in range(self.total_qubit_num)])
             qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
                       [*buffer, res[1], *anc[:self.precision - 1]])
             qc.ccx(res[0], res[1], res[-1])
             qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True).inverse(),
                       [*buffer, res[1], *anc[:self.precision - 1]])
-            qc.append(qc_list[i], [j for j in np.arange(self.total_qubit_num)])
-
-        extra_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
-        extra_iter_num -= int(self.grover_iter_min_num)
-        while extra_iter_num > 0:
-            extra_iter_num -= 1
-            qc.append(self.grover_operator(), [*qram, *buffer, *anc, *res])
+            qc.append(qc_end, [i for i in range(self.total_qubit_num)])
 
         # print(qc)
+        print("depth: ", qc.depth())
         qc.measure(qram, cl)
+        # backend = Aer.backends(name='qasm_simulator')[0]
+        # self.job = execute(qc, backend, shots=1000)
         self.job = self.sampler.run(circuits=qc, shots=1000)
         self.async_grover()
 
@@ -439,8 +442,6 @@ class OptimalRoute:
         # output = job.result().quasi_dists[0]
         # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
         # return util.int_to_binary(output[0][0], self.qram_num)
-
-    qc = QuantumCircuit(1)
 
     def cal_single_route_dist(self, route):
         dist = 0.0
@@ -561,7 +562,6 @@ if __name__ == '__main__':
     print("time: ", end_time - start_time)
     path = test.path
     print(path)
-    test.session.close()
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
