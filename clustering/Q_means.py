@@ -9,15 +9,14 @@ from utils import display_result as disp, util
 
 
 class QMeans:
-    def __init__(self, points, cluster_num, iter_num):
+    def __init__(self, points, cluster_num):
         """
         :param points: node list
         :param cluster_num: the number of clusters that need to divide
-        :param iter_num: the number of iterations of Q-means
         """
         self.points = points
         self.cluster_num = cluster_num
-        self.iter_num = iter_num
+        self.iter_num = 15
         self.centroids = []
         self.clusters = [[] for _ in np.arange(self.cluster_num)]
 
@@ -156,6 +155,8 @@ class QMeans:
             if self.update_clusters():
                 break
 
+        return self.centroids, self.clusters
+
 
 if __name__ == '__main__':
     with open('../dataset/xqf131.tsp', 'r') as file:
@@ -167,7 +168,7 @@ if __name__ == '__main__':
         point = line.strip().split(' ')[1:]
         points.append([float(point[i]) for i in np.arange(len(point))])
 
-    test = QMeans(points, 5, 10)
+    test = QMeans(points, 5)
 
     color = ['red', 'green', 'orange', 'blue', 'black']
     for i in np.arange(5):

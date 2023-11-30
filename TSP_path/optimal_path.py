@@ -14,12 +14,13 @@ from utils import display_result, NOT_gate, unitary_function as uf, util
 from dataset import test
 
 
-class OptimalRoute:
-    def __init__(self, node_num, dist_adj, total_qubit_num):
+class OptimalPath:
+    def __init__(self, node_num, points, total_qubit_num):
         """
         :param node_num: the number of cities in the route
-        :param dist_adj: the distance adjacency matrix of nodes, whose size is [node_num - 1, node_num - 1]
+        :param points: coordinates of all nodes
         """
+        self.points = points
         self.total_qubit_num = total_qubit_num
         # the number of choices for every step, excluding the start and the end
         self.choice_num = node_num - 2
@@ -52,17 +53,28 @@ class OptimalRoute:
         self.job = None
 
         # initialize all parameters for Grover algorithm
-        self.init_grover_param(dist_adj)
+        self.init_grover_param()
 
-    def init_dist_adj(self, dist_adj):
+    def init_dist_adj(self):
         """
         the distance matrix's preprocessing
-        :param dist_adj: matrix representing the distance between every city
         """
+        point_num = len(self.points)
+        dist_adj = np.zeros((point_num - 1, point_num - 1))
+        order_dists = []
+        for i in range(point_num - 1):
+            for j in range(i, point_num - 1):
+                dist_adj[i][j] = 1.0 / (abs(self.points[j + 1][0] - self.points[i][0]) + abs(
+                    self.points[j + 1][1] - self.points[i][1]))
+                if i > 0 and j < point_num - 2:
+                    dist_adj[j + 1][i - 1] = dist_adj[i][j]
+                    order_dists.append(dist_adj[i][j])
+
         # calculate the max distance
-        max_dist = 0.0
-        for i in np.arange(len(dist_adj) - 1):
-            max_dist += max(dist_adj[i][i: -1])
+        order_dists.sort(reverse=True)
+        max_dist = max(dist_adj[0][:-1])
+        for i in range(self.step_num - 1):
+            max_dist += order_dists[i]
         max_dist += max([row[-1] for row in dist_adj]) + 1
 
         # normalize the adjacency matrix to 2.0 * m.pi / (2 ** precision)
@@ -80,7 +92,7 @@ class OptimalRoute:
         # make up the rest of adjacency matrix
         self.dist_adj[:, :self.choice_num] = dist_adj
 
-    def init_grover_param(self, dist_adj):
+    def init_grover_param(self):
         # adjust the number of bits of every quantum register
         if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
             raise ValueError("The number of nodes is too much!")
@@ -90,7 +102,7 @@ class OptimalRoute:
         print("anc_num: ", self.anc_num)
         print("res_num: ", self.res_num)
 
-        self.init_dist_adj(dist_adj)
+        self.init_dist_adj()
 
         # initialize the threshold
         for i in np.arange(len(self.dist_adj) - 1):
@@ -267,7 +279,7 @@ class OptimalRoute:
 
         return qc
 
-    def cal_distance_qpe(self):
+    def cal_path_dist(self):
         """
         to calculate the total distance of every route
         """
@@ -298,9 +310,9 @@ class OptimalRoute:
         qc_end = QuantumCircuit(qram, buffer, anc, res, name='qc_end')
 
         qc_start.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-        qc_start.append(self.cal_distance_qpe(), [*qram, *buffer[:self.precision], *anc])
+        qc_start.append(self.cal_path_dist(), [*qram, *buffer[:self.precision], *anc])
 
-        qc_end.append(self.cal_distance_qpe().inverse(), [*qram, *buffer[:self.precision], *anc])
+        qc_end.append(self.cal_path_dist().inverse(), [*qram, *buffer[:self.precision], *anc])
         qc_end.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
         qc_end.append(self.grover_diffusion(), [*qram, *anc, res[-1]])
 
@@ -337,8 +349,9 @@ class OptimalRoute:
             if new_threshold > self.threshold:
                 self.threshold = new_threshold
                 self.path = new_path
-                self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
-                self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
+                # self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
+                self.grover_iter_min_num = 1.0 / 2 * (self.grover_iter_max_num + self.grover_iter_min_num)
+                # self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
                 self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
                 print("new_threshold: ", new_threshold)
             else:
@@ -367,6 +380,20 @@ class OptimalRoute:
         self.job = self.sampler.run(circuits=qc, shots=1000)
         self.async_grover()
 
+    def main(self):
+        self.async_grover()
+        path = [0]
+        for i in range(len(self.path)):
+            path.append(self.path[i] + 1)
+        path.append(len(path))
+        return path
+
+        # path = [self.points[0]]
+        # for i in range(len(self.path)):
+        #     path.append(self.points[self.path[i] + 1])
+        # path.append(self.points[-1])
+        # return path
+
     def check_dist_below_threshold(self, threshold):
         """
         calculate the distance of every route, and determine whether it is less than the threshold
@@ -378,7 +405,7 @@ class OptimalRoute:
         res = QuantumRegister(1)
         qc = QuantumCircuit(qram, buffer, anc, res)
 
-        qc.append(self.cal_distance_qpe(), [*qram, *buffer, *anc])
+        qc.append(self.cal_path_dist(), [*qram, *buffer, *anc])
         qc.append(lib.IntegerComparator(self.precision, threshold, geq=True),
                   [*buffer, *res, *anc[:self.precision - 1]])
 
@@ -514,7 +541,7 @@ class OptimalRoute:
 
 if __name__ == '__main__':
     test_adj = test.test_for_5
-    test = OptimalRoute(5, test_adj, 27)
+    test = OptimalPath(5, test_adj, 27)
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
