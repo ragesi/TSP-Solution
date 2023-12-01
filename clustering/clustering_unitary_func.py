@@ -4,7 +4,7 @@ import qiskit.circuit.library as lib
 import math as m
 import numpy as np
 
-from utils import unitary_function as uf, util, display_result as disp
+from utils import display_result as disp
 
 
 def cal_range(points):

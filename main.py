@@ -14,7 +14,7 @@ class TSPSolution:
         self.point_map = dict()
         self.path = []
 
-        self.sub_issue_max_size = 7
+        self.sub_issue_max_size = 6
         self.max_qubit_num = 29
 
     def get_data(self):
@@ -73,8 +73,7 @@ class TSPSolution:
                 is_finish = False
                 split_cluster_num = min(m.ceil(1.0 * len(self.path[i].points) / self.sub_issue_max_size),
                                         self.sub_issue_max_size)
-                split_centroids, split_points = QMeans(self.path[i].points, split_cluster_num).main()
-                split_clusters = Clusters(split_centroids, split_points)
+                split_clusters = QMeans(self.path[i].points, split_cluster_num).main()
                 self.path[i] = split_clusters
 
             if is_finish:
@@ -82,18 +81,18 @@ class TSPSolution:
 
             # after division, get every cluster's begin and end of centroids
             for i in range(len(self.path)):
-                if type(self.path[i]) == 'SingleCluster':
+                if self.path[i].class_type == 0:
                     continue
 
                 # get the source and target of every cluster
                 begin, end = TSPSolution.find_diff_clusters_connector(self.path[i - 1].get_nodes_in_path,
-                                                                          self.path[i].get_nodes_in_path)
+                                                                      self.path[i].get_nodes_in_path)
                 self.path[i - 1].end = begin
                 self.path[i].begin = end
 
             # calculate every cluster's order of centroids
             for i in range(len(self.path)):
-                if type(self.path[i]) == 'SingleCluster':
+                if self.path[i].class_type == 0:
                     continue
 
                 self.path[i].swap()
@@ -105,7 +104,6 @@ class TSPSolution:
 
         # TODO: 当聚类中的节点数量少于3时的解决方法
         # TODO: 优化整体代码架构
-        # TODO: 重构QMeans代码，它的代码中应该可以用到cluster结构体
         # when all clusters are divided to minimum, find optimal paths for all clusters respectively
         for i in range(len(self.path)):
             self.path[i].swap()

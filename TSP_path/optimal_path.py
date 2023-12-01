@@ -10,22 +10,23 @@ import numpy as np
 import math as m
 import cmath as cm
 
-from utils import display_result, NOT_gate, unitary_function as uf, util
+from utils import NOT_gate, util
 from dataset import test
 
 
 class OptimalPath:
-    def __init__(self, node_num, points, total_qubit_num):
+    def __init__(self, point_num, points, total_qubit_num):
         """
-        :param node_num: the number of cities in the route
+        :param point_num: the number of cities in the route
         :param points: coordinates of all nodes
         """
         self.points = points
+        self.point_num = point_num
         self.total_qubit_num = total_qubit_num
         # the number of choices for every step, excluding the start and the end
-        self.choice_num = node_num - 2
+        self.choice_num = point_num - 2
         # the number of steps that have choices
-        self.step_num = node_num - 2
+        self.step_num = point_num - 2
         # the number of choice encoding bits in binary
         self.choice_bit_num = m.ceil(1.0 * m.log2(self.choice_num))
         self.qram_num = self.step_num * self.choice_bit_num
@@ -44,7 +45,7 @@ class OptimalPath:
         self.grover_repeat_num = 0
 
         # the distance adjacency
-        self.dist_adj = np.zeros((node_num - 1, 2 ** self.choice_bit_num))
+        self.dist_adj = np.zeros((point_num - 1, 2 ** self.choice_bit_num))
         self.end_dists = np.zeros(2 ** self.choice_bit_num)
 
         # run on the IBM Quantum Platform
@@ -59,14 +60,13 @@ class OptimalPath:
         """
         the distance matrix's preprocessing
         """
-        point_num = len(self.points)
-        dist_adj = np.zeros((point_num - 1, point_num - 1))
+        dist_adj = np.zeros((self.point_num - 1, self.point_num - 1))
         order_dists = []
-        for i in range(point_num - 1):
-            for j in range(i, point_num - 1):
+        for i in range(self.point_num - 1):
+            for j in range(i, self.point_num - 1):
                 dist_adj[i][j] = 1.0 / (abs(self.points[j + 1][0] - self.points[i][0]) + abs(
                     self.points[j + 1][1] - self.points[i][1]))
-                if i > 0 and j < point_num - 2:
+                if i > 0 and j < self.point_num - 2:
                     dist_adj[j + 1][i - 1] = dist_adj[i][j]
                     order_dists.append(dist_adj[i][j])
 

@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-from utils import unitary_function as uf
-from utils import display_result as disp, util
+from utils import display_result as disp
+from cluster import Clusters
 
 
 class QMeans:
@@ -60,7 +60,7 @@ class QMeans:
 
     def init_clusters(self):
         for point in self.points:
-            self.clusters[QMeans.find_optimal_cluster(point, self.centroids)].append(point)
+            self.clusters[self.find_optimal_cluster(point)].append(point)
 
     @staticmethod
     def get_range(points):
@@ -77,53 +77,47 @@ class QMeans:
         :param y_range: the y bound of Cartesian coordinate
         :return: QuantumCircuit
         """
-        q = QuantumRegister(1)
-        qc = QuantumCircuit(q)
-
         delta_x = (point[0] - x_range[0]) / (1.0 * x_range[1] - x_range[0])
         delta_y = (point[1] - y_range[0]) / (1.0 * y_range[1] - y_range[0])
         theta = np.pi / 2 * (delta_x + delta_y)
         phi = np.pi / 2 * (delta_x - delta_y + 1)
 
-        qc.u(theta, phi, 0, q[0])
-        return qc
+        return theta, phi
 
-    @staticmethod
-    def find_optimal_cluster(source, targets):
-        dist_num = len(targets)
-        # control = QuantumRegister(dist_num)
-        # data = QuantumRegister(dist_num + 1)
-        # cl = ClassicalRegister(dist_num)
-        # qc = QuantumCircuit(control, data, cl)
-        q = QuantumRegister(dist_num * 3)
-        cl = ClassicalRegister(dist_num)
+    def classical_find_optimal_cluster(self, point):
+        min_dist = 1000
+        min_id = -1
+        for i in range(len(self.centroids)):
+            cur_dist = abs(point[0] - self.centroids[i][0]) + abs(point[1] - self.centroids[i][1])
+            if cur_dist < min_dist:
+                min_dist = cur_dist
+                min_id = i
+        return min_id
+
+    def find_optimal_cluster(self, point):
+        q = QuantumRegister(self.cluster_num * 3)
+        cl = ClassicalRegister(self.cluster_num)
         qc = QuantumCircuit(q, cl)
 
         # find the x and y's bound
-        x_range, y_range = QMeans.get_range([source, *targets])
+        x_range, y_range = QMeans.get_range([point, *self.centroids])
+        point_theta, point_phi = QMeans.to_bloch_state(point, x_range, y_range)
+        for i in range(self.cluster_num):
+            qc.u(point_theta, point_phi, 0, q[i * 3 + 1])
+            cent_theta, cent_phi = QMeans.to_bloch_state(self.centroids[i], x_range, y_range)
+            qc.u(cent_theta, cent_phi, 0, q[i * 3 + 2])
 
-        for i in np.arange(dist_num):
-            qc.append(QMeans.to_bloch_state(source, x_range, y_range), [q[i * 3 + 1]])
-            qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [q[i * 3 + 2]])
+            qc.h(q[i * 3])
+            qc.cswap(q[i * 3], q[i * 3 + 1], q[i * 3 + 2])
+            qc.h(q[i * 3])
 
-            qc.append(uf.inner_product(), q[i * 3: (i + 1) * 3])
-
-        for i in np.arange(dist_num):
+        for i in np.arange(self.cluster_num):
             qc.measure(q[i * 3], cl[i])
 
-        # transform to bloch coordinate
-        # qc.append(QMeans.to_bloch_state(source, x_range, y_range), [data[0]])
-        # for i in np.arange(dist_num):
-        #     qc.append(QMeans.to_bloch_state(targets[i], x_range, y_range), [data[i + 1]])
-        #
-        # # calculate similarity through inner product
-        # for i in np.arange(dist_num):
-        #     qc.append(uf.inner_product(), [control[i], data[i], data[i + 1]])
-        # qc.measure(control, cl)
-        output = disp.Measurement(qc, return_M=True, print_M=False, shots=100)
-        dists = [0 for _ in np.arange(dist_num)]
+        output = disp.Measurement(qc, return_M=True, print_M=False, shots=1000)
+        dists = [0 for _ in np.arange(self.cluster_num)]
         for item in output.items():
-            for i in np.arange(dist_num):
+            for i in np.arange(self.cluster_num):
                 dists[i] += item[1] if item[0][i] == '0' else 0
         return dists.index(max(dists))
 
@@ -132,7 +126,8 @@ class QMeans:
         is_terminate = True
         for i in np.arange(self.cluster_num):
             for point in self.clusters[i]:
-                new_cluster_id = QMeans.find_optimal_cluster(point, self.centroids)
+                new_cluster_id = self.classical_find_optimal_cluster(point)
+                # new_cluster_id = self.find_optimal_cluster(point)
                 new_clusters[new_cluster_id].append(point)
                 if new_cluster_id != i:
                     is_terminate = False
@@ -155,7 +150,7 @@ class QMeans:
             if self.update_clusters():
                 break
 
-        return self.centroids, self.clusters
+        return Clusters(self.centroids, self.clusters)
 
 
 if __name__ == '__main__':
@@ -175,11 +170,11 @@ if __name__ == '__main__':
         plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
         for point in test.clusters[i]:
             plt.scatter(point[0], point[1], color=color[i], s=5)
-    x_major_locator = MultipleLocator(10)
-    y_major_locator = MultipleLocator(10)
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(x_major_locator)
-    ax.yaxis.set_major_locator(y_major_locator)
-    plt.xlim(-10, 110)
-    plt.ylim(-10, 110)
+    # x_major_locator = MultipleLocator(10)
+    # y_major_locator = MultipleLocator(10)
+    # ax = plt.gca()
+    # ax.xaxis.set_major_locator(x_major_locator)
+    # ax.yaxis.set_major_locator(y_major_locator)
+    # plt.xlim(-10, 110)
+    # plt.ylim(-10, 110)
     plt.show()
