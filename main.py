@@ -47,21 +47,19 @@ class TSPSolution:
 
     def divide_sub_issue(self):
         if len(self.points) < self.sub_issue_max_size:
-            optimal_path = OptimalPath(len(self.points) + 1, [*self.points, self.points[0]], self.max_qubit_num)
-            tmp_path = optimal_path.main()
-            tmp_path = tmp_path[:-1]
-            for tmp_node in tmp_path:
-                self.path.append(self.point_map.get(self.points[tmp_node]))
+            cur_cluster = SingleCluster(None, self.points)
+            cur_cluster.find_optimal_circle(self.max_qubit_num)
+            cur_order = cur_cluster.get_nodes_in_path()
+            for point in cur_order:
+                self.path.append(self.point_map.get(point))
             return
 
         split_cluster_num = min(m.ceil(1.0 * len(self.points) / self.sub_issue_max_size), self.sub_issue_max_size - 1)
-        split_centroids, split_points = QMeans(self.points, split_cluster_num).main()
-        optimal_path = OptimalPath(len(split_centroids) + 1, [*split_centroids, split_centroids[0]], self.max_qubit_num)
-        path = optimal_path.main()[:-1]
-        for i in range(len(path)):
-            cur_id = path[i]
-            self.path.append(SingleCluster(split_centroids[cur_id], split_points[cur_id]))
-            self.path[-1].should_split = False if split_points[cur_id] <= self.sub_issue_max_size else True
+        split_cluster = QMeans(self.points, split_cluster_num).main()
+        split_cluster.find_optimal_circle(self.max_qubit_num)
+        self.path += split_cluster.points
+        for i in range(len(self.path)):
+            self.path[i].can_be_split(self.sub_issue_max_size)
         is_finish = False
         while not is_finish:
             is_finish = True
@@ -81,33 +79,28 @@ class TSPSolution:
 
             # after division, get every cluster's begin and end of centroids
             for i in range(len(self.path)):
-                if self.path[i].class_type == 0:
-                    continue
-
                 # get the source and target of every cluster
                 begin, end = TSPSolution.find_diff_clusters_connector(self.path[i - 1].get_nodes_in_path,
                                                                       self.path[i].get_nodes_in_path)
                 self.path[i - 1].end = begin
                 self.path[i].begin = end
+                if i > 0:
+                    self.path[i - 1].determine_head_and_tail()
 
             # calculate every cluster's order of centroids
             for i in range(len(self.path)):
                 if self.path[i].class_type == 0:
                     continue
 
-                self.path[i].swap()
-                cur_centroids = self.path[i].get_nodes_in_path()
-                cur_path = OptimalPath(len(cur_centroids), cur_centroids, self.max_qubit_num).main()
                 cur_clusters = self.path.pop(i)
-                for j in range(len(cur_path)):
-                    self.path.insert(j + i, cur_clusters.cluster_list[cur_path[j]])
+                cur_clusters.find_optimal_path(self.max_qubit_num)
+                self.path[i: i] = cur_clusters.points
+                for j in range(i, i + cur_clusters.point_num):
+                    self.path[i + j].can_be_split(self.sub_issue_max_size)
 
-        # TODO: 当聚类中的节点数量少于3时的解决方法
-        # TODO: 优化整体代码架构
         # when all clusters are divided to minimum, find optimal paths for all clusters respectively
         for i in range(len(self.path)):
-            self.path[i].swap()
-            cur_path = OptimalPath(len(self.path[i].points), self.path[i].points, self.max_qubit_num).main()
             cur_clusters = self.path.pop(i)
-            for j in range(len(cur_path)):
-                self.path.insert(j + i, self.point_map[cur_clusters.points[cur_path[j]]])
+            cur_clusters.find_optimal_path(self.sub_issue_max_size)
+            for j in range(cur_clusters.point_num):
+                self.path.insert(i + j, self.point_map[cur_clusters.points[j]])

@@ -164,17 +164,11 @@ if __name__ == '__main__':
         points.append([float(point[i]) for i in np.arange(len(point))])
 
     test = QMeans(points, 5)
+    test.main()
 
     color = ['red', 'green', 'orange', 'blue', 'black']
     for i in np.arange(5):
         plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
         for point in test.clusters[i]:
             plt.scatter(point[0], point[1], color=color[i], s=5)
-    # x_major_locator = MultipleLocator(10)
-    # y_major_locator = MultipleLocator(10)
-    # ax = plt.gca()
-    # ax.xaxis.set_major_locator(x_major_locator)
-    # ax.yaxis.set_major_locator(y_major_locator)
-    # plt.xlim(-10, 110)
-    # plt.ylim(-10, 110)
     plt.show()

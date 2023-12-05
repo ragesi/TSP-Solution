@@ -93,6 +93,9 @@ class OptimalPath:
         self.dist_adj[:, :self.choice_num] = dist_adj
 
     def init_grover_param(self):
+        if self.point_num < 4:
+            return
+
         # adjust the number of bits of every quantum register
         if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
             raise ValueError("The number of nodes is too much!")
@@ -381,6 +384,9 @@ class OptimalPath:
         self.async_grover()
 
     def main(self):
+        if self.point_num < 4:
+            return [i for i in range(self.point_num)]
+
         self.async_grover()
         path = [0]
         for i in range(len(self.path)):
