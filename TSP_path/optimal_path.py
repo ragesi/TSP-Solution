@@ -62,13 +62,26 @@ class OptimalPath:
         """
         dist_adj = np.zeros((self.point_num - 1, self.point_num - 1))
         order_dists = []
+        max_dist = 0
+        # TODO: 此处需要重新设计距离的计算方法，保证真实距离和最终的结果是线性负相关的
         for i in range(self.point_num - 1):
             for j in range(i, self.point_num - 1):
-                dist_adj[i][j] = 1.0 / (abs(self.points[j + 1][0] - self.points[i][0]) + abs(
-                    self.points[j + 1][1] - self.points[i][1]))
-                if i > 0 and j < self.point_num - 2:
-                    dist_adj[j + 1][i - 1] = dist_adj[i][j]
-                    order_dists.append(dist_adj[i][j])
+                if i == 0 and j == self.point_num - 2:
+                    continue
+                dist_adj[i][j] = abs(self.points[j + 1][0] - self.points[i][0]) + abs(
+                    self.points[j + 1][1] - self.points[i][1])
+                max_dist = max(max_dist, dist_adj)
+                # if i > 0 and j < self.point_num - 2:
+                #     dist_adj[j + 1][i - 1] = dist_adj[i][j]
+                    # order_dists.append(dist_adj[i][j])
+
+        for i in range(self.point_num - 1):
+            for j in range(i, self.point_num - 1):
+                if i == 0 and j == self.point_num - 2:
+                    continue
+                dist_adj[i][j] = max_dist - dist_adj
+
+        print("dist_adj: ", dist_adj)
 
         # calculate the max distance
         order_dists.sort(reverse=True)
@@ -86,11 +99,10 @@ class OptimalPath:
         # make up the last step's distance
         for i in np.arange(len(dist_adj)):
             if i == 0:
-                dist_adj[i].pop()
                 continue
-            self.end_dists[i - 1] = dist_adj[i].pop()
+            self.end_dists[i - 1] = dist_adj[i][-1]
         # make up the rest of adjacency matrix
-        self.dist_adj[:, :self.choice_num] = dist_adj
+        self.dist_adj[:, :self.choice_num] = dist_adj[:, :self.choice_num]
 
     def init_grover_param(self):
         if self.point_num < 4:
@@ -127,15 +139,15 @@ class OptimalPath:
         self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
 
         # get connection to IBM Quantum Platform
-        options = Options()
-        options.optimization_level = 0
-        options.resilience_level = 1
-        service = QiskitRuntimeService()
-        # backend = 'ibmq_qasm_simulator'
-        # backend = 'simulator_statevector'
-        backend = 'ibm_brisbane'
-        self.session = Session(service=service, backend=backend)
-        self.sampler = Sampler(session=self.session, options=options)
+        # options = Options()
+        # options.optimization_level = 0
+        # options.resilience_level = 1
+        # service = QiskitRuntimeService()
+        # # backend = 'ibmq_qasm_simulator'
+        # # backend = 'simulator_statevector'
+        # backend = 'ibm_brisbane'
+        # self.session = Session(service=service, backend=backend)
+        # self.sampler = Sampler(session=self.session, options=options)
 
     def check_route_validity(self):
         qram = QuantumRegister(self.qram_num)
@@ -321,155 +333,6 @@ class OptimalPath:
 
         return qc_start, qc_end
 
-    def async_grover(self):
-        qram = QuantumRegister(self.qram_num)
-        buffer = QuantumRegister(self.buffer_num)
-        anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(self.res_num)
-        cl = ClassicalRegister(self.qram_num)
-        qc = QuantumCircuit(qram, buffer, anc, res, cl)
-        # initialization
-        qc.h(qram)
-        qc.x(res[-1])
-        qc.h(res[-1])
-
-        max_iter_bound = m.pi / 4.0 * m.sqrt(2 ** self.qram_num)
-
-        qc_start, qc_end = self.build_partial_circuit()
-        # print(qc_start)
-        # print(qc_end)
-
-        if self.job is not None:
-            output = self.job.result().quasi_dists[0]
-            # output = self.job.result().get_counts()
-            output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-            output = util.int_to_binary(output[0][0], self.qram_num)
-            new_path = self.translate_route(output)
-            # new_path = self.translate_route(output[0][0])
-            new_threshold = self.cal_single_route_dist(new_path)
-            print("new_path: ", new_path)
-
-            if new_threshold > self.threshold:
-                self.threshold = new_threshold
-                self.path = new_path
-                # self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
-                self.grover_iter_min_num = 1.0 / 2 * (self.grover_iter_max_num + self.grover_iter_min_num)
-                # self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
-                self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
-                print("new_threshold: ", new_threshold)
-            else:
-                self.grover_repeat_num -= 1
-                self.grover_iter_max_num = min(self.alpha * self.grover_iter_max_num, max_iter_bound)
-        if self.grover_repeat_num == 0:
-            self.session.close()
-            return
-
-        cur_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
-        print("cur_iter_num: ", cur_iter_num)
-        for _ in range(cur_iter_num):
-            qc.append(qc_start, [i for i in range(self.total_qubit_num)])
-            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
-                      [*buffer, res[1], *anc[:self.precision - 1]])
-            qc.ccx(res[0], res[1], res[-1])
-            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True).inverse(),
-                      [*buffer, res[1], *anc[:self.precision - 1]])
-            qc.append(qc_end, [i for i in range(self.total_qubit_num)])
-
-        # print(qc)
-        print("depth: ", qc.depth())
-        qc.measure(qram, cl)
-        # backend = Aer.backends(name='qasm_simulator')[0]
-        # self.job = execute(qc, backend, shots=1000)
-        self.job = self.sampler.run(circuits=qc, shots=1000)
-        self.async_grover()
-
-    def main(self):
-        if self.point_num < 4:
-            return [i for i in range(self.point_num)]
-
-        self.async_grover()
-        path = [0]
-        for i in range(len(self.path)):
-            path.append(self.path[i] + 1)
-        path.append(len(path))
-        return path
-
-        # path = [self.points[0]]
-        # for i in range(len(self.path)):
-        #     path.append(self.points[self.path[i] + 1])
-        # path.append(self.points[-1])
-        # return path
-
-    def check_dist_below_threshold(self, threshold):
-        """
-        calculate the distance of every route, and determine whether it is less than the threshold
-        :param threshold: integer
-        """
-        qram = QuantumRegister(self.qram_num)
-        buffer = QuantumRegister(self.precision)
-        anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(1)
-        qc = QuantumCircuit(qram, buffer, anc, res)
-
-        qc.append(self.cal_path_dist(), [*qram, *buffer, *anc])
-        qc.append(lib.IntegerComparator(self.precision, threshold, geq=True),
-                  [*buffer, *res, *anc[:self.precision - 1]])
-
-        return qc
-
-    def grover_operator(self):
-        """
-        an iteration of Grover algorithm
-        """
-        qram = QuantumRegister(self.qram_num)
-        buffer = QuantumRegister(self.buffer_num)
-        anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(self.res_num)
-        qc = QuantumCircuit(qram, buffer, anc, res, name='grover_operator')
-
-        # three stage to determine whether the route is valid
-        qc.append(self.check_route_validity(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-        qc.append(self.check_dist_below_threshold(self.threshold), [*qram, *buffer[:self.precision], *anc, res[1]])
-
-        # qc.cx(res[0], res[-1])
-        qc.ccx(res[0], res[1], res[-1])
-
-        qc.append(self.check_dist_below_threshold(self.threshold).inverse(),
-                  [*qram, *buffer[:self.precision], *anc, res[1]])
-        qc.append(self.check_route_validity().inverse(), [*qram, *buffer[:self.step_num], *anc, res[0]])
-
-        # grover diffusion
-        # qc.append(uf.grover_diffusion(self.qram_num, self.anc_num), [*qram, *anc, res[-1]])
-        qc.append(self.grover_diffusion(), [*qram, *anc, res[-1]])
-
-        return qc
-
-    def grover(self, threshold, iter_num):
-        qram = QuantumRegister(self.qram_num)
-        buffer = QuantumRegister(self.buffer_num)
-        anc = QuantumRegister(self.anc_num)
-        res = QuantumRegister(self.res_num)
-        cl = ClassicalRegister(self.qram_num)
-        qc = QuantumCircuit(qram, buffer, anc, res, cl)
-
-        # initialization
-        qc.h(qram)
-        qc.x(res[-1])
-        qc.h(res[-1])
-
-        for _ in np.arange(iter_num):
-            qc.append(self.grover_operator(threshold), [*qram, *buffer, *anc, *res])
-
-        qc.measure(qram, cl)
-        # output = execute.local_simulator(qc, 10)
-        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-        # return output[0][0]
-
-        self.job = self.sampler.run(circuits=qc, shots=10)
-        # output = job.result().quasi_dists[0]
-        # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-        # return util.int_to_binary(output[0][0], self.qram_num)
-
     def cal_single_route_dist(self, route):
         dist = 0.0
         for i in np.arange(len(route)):
@@ -489,65 +352,90 @@ class OptimalPath:
             route.insert(0, int(bin_route[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], 2))
         return route
 
-    def QESA(self, threshold, min_iter_num):
-        alpha = 6.0 / 5
-        max_iter_num = min_iter_num
+    def async_grover(self):
+        qram = QuantumRegister(self.qram_num)
+        buffer = QuantumRegister(self.buffer_num)
+        anc = QuantumRegister(self.anc_num)
+        res = QuantumRegister(self.res_num)
+        cl = ClassicalRegister(self.qram_num)
+        qc = QuantumCircuit(qram, buffer, anc, res, cl)
+        # initialization
+        qc.h(qram)
+        qc.x(res[-1])
+        qc.h(res[-1])
 
-        # iter_num_bound = round(9.0 * m.pi / 8.0 * m.sqrt(2 ** self.qram_num))
-        iter_num_bound = round(m.log(m.sqrt(m.factorial(self.choice_num)), alpha))
-        print("iter_num_bound: ", iter_num_bound)
-        is_finish = True
-        new_threshold = 0.
-        new_route = None
-        for _ in np.arange(iter_num_bound):
-            iter_num = random.randint(int(min_iter_num), int(max_iter_num))
-            new_route = self.grover(threshold, iter_num)
-            new_route = self.translate_route(new_route)
-            new_threshold = self.cal_single_route_dist(new_route)
-            print("new_route: ", new_route)
+        max_iter_bound = m.pi / 4.0 * m.sqrt(2 ** self.qram_num)
 
-            if new_threshold > threshold:
-                is_finish = False
+        qc_start, qc_end = self.build_partial_circuit()
+        # print(qc_start)
+        # print(qc_end)
+
+        if self.job is not None:
+            # output = self.job.result().quasi_dists[0]
+            output = self.job.result().get_counts()
+            output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+            # output = util.int_to_binary(output[0][0], self.qram_num)
+            # new_path = self.translate_route(output)
+            new_path = self.translate_route(output[0][0])
+            new_threshold = self.cal_single_route_dist(new_path)
+            print("new_path: ", new_path)
+
+            if new_threshold > self.threshold:
+                self.threshold = new_threshold
+                self.path = new_path
+                # self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
+                self.grover_iter_min_num = 1.0 / 2 * (self.grover_iter_max_num + self.grover_iter_min_num)
+                # self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
+                self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
                 print("new_threshold: ", new_threshold)
-                break
             else:
-                max_iter_num = min(alpha * max_iter_num, m.pi / 4.0 * m.sqrt(2 ** self.qram_num))
+                self.grover_repeat_num -= 1
+                self.grover_iter_max_num = min(self.alpha * self.grover_iter_max_num, max_iter_bound)
+        if self.grover_repeat_num == 0:
+            # self.session.close()
+            return
 
-        return new_route, new_threshold, is_finish, max_iter_num
+        cur_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
+        print("cur_iter_num: ", cur_iter_num)
+        for _ in range(cur_iter_num):
+            qc.append(qc_start, [i for i in range(self.total_qubit_num)])
+            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
+                      [*buffer, res[1], *anc[:self.precision - 1]])
+            qc.ccx(res[0], res[1], res[-1])
+            qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True).inverse(),
+                      [*buffer, res[1], *anc[:self.precision - 1]])
+            qc.append(qc_end, [i for i in range(self.total_qubit_num)])
 
-    def QMSA(self):
-        min_iter_num = 1.
-        for i in np.arange(self.step_num, 0, -1):
-            min_iter_num *= m.sqrt(1.0 * i / (2 ** self.choice_bit_num))
-        min_iter_num = m.pi / 4.0 / m.asin(min_iter_num)
-        min_iter_num = max(1.0, min_iter_num)
-        print("iter_num: ", min_iter_num)
+        # print(qc)
+        print("depth: ", qc.depth())
+        qc.measure(qram, cl)
+        backend = Aer.backends(name='qasm_simulator')[0]
+        self.job = execute(qc, backend, shots=1000)
+        # self.job = self.sampler.run(circuits=qc, shots=1000)
+        self.async_grover()
 
-        threshold = 0.
-        for i in np.arange(len(self.dist_adj) - 1):
-            threshold += self.dist_adj[i][i]
-        threshold += self.end_dists[self.choice_num - 1]
-        threshold = min(threshold, 1.0 - (1.0 / 64))
-        threshold *= 2 ** self.precision
-        print("threshold: ", threshold)
+    def main(self):
+        if self.point_num < 4:
+            return [i for i in range(self.point_num)]
 
-        route = [i for i in np.arange(self.step_num)]
+        self.async_grover()
+        path = [0]
+        for i in range(len(self.path)):
+            path.append(self.path[i] + 1)
+        path.append(len(path))
+        return path
 
-        while True:
-            tmp_route, tmp_threshold, is_finish, tmp_iter_num = self.QESA(threshold, min_iter_num)
-            if not is_finish:
-                threshold = tmp_threshold
-                route = tmp_route
-                min_iter_num = min(tmp_iter_num + 1, m.pi / 4.0 * m.sqrt(2 ** self.qram_num))
-            else:
-                break
-
-        return route
+        # path = [self.points[0]]
+        # for i in range(len(self.path)):
+        #     path.append(self.points[self.path[i] + 1])
+        # path.append(self.points[-1])
+        # return path
 
 
 if __name__ == '__main__':
-    test_adj = test.test_for_5
-    test = OptimalPath(5, test_adj, 27)
+    # test_adj = test.test_for_5
+    test_points = test.point_test_for_4
+    test = OptimalPath(4, test_points, 27)
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
@@ -583,12 +471,12 @@ if __name__ == '__main__':
     # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
     # print(output)
 
-    start_time = time.time()
-    test.async_grover()
-    end_time = time.time()
-    print("time: ", end_time - start_time)
-    path = test.path
-    print(path)
+    # start_time = time.time()
+    # test.async_grover()
+    # end_time = time.time()
+    # print("time: ", end_time - start_time)
+    # path = test.path
+    # print(path)
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)
