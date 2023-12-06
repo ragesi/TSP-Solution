@@ -61,27 +61,25 @@ class OptimalPath:
         the distance matrix's preprocessing
         """
         dist_adj = np.zeros((self.point_num - 1, self.point_num - 1))
-        order_dists = []
         max_dist = 0
-        # TODO: 此处需要重新设计距离的计算方法，保证真实距离和最终的结果是线性负相关的
         for i in range(self.point_num - 1):
             for j in range(i, self.point_num - 1):
                 if i == 0 and j == self.point_num - 2:
                     continue
                 dist_adj[i][j] = abs(self.points[j + 1][0] - self.points[i][0]) + abs(
                     self.points[j + 1][1] - self.points[i][1])
-                max_dist = max(max_dist, dist_adj)
-                # if i > 0 and j < self.point_num - 2:
-                #     dist_adj[j + 1][i - 1] = dist_adj[i][j]
-                    # order_dists.append(dist_adj[i][j])
+                max_dist = max(max_dist, dist_adj[i][j])
+        max_dist *= 1.2
 
+        order_dists = []
         for i in range(self.point_num - 1):
             for j in range(i, self.point_num - 1):
                 if i == 0 and j == self.point_num - 2:
                     continue
-                dist_adj[i][j] = max_dist - dist_adj
-
-        print("dist_adj: ", dist_adj)
+                dist_adj[i][j] = max_dist - dist_adj[i][j]
+                if i > 0 and j < self.point_num - 2:
+                    dist_adj[j + 1][i - 1] = dist_adj[i][j]
+                    order_dists.append(dist_adj[i][j])
 
         # calculate the max distance
         order_dists.sort(reverse=True)
@@ -144,8 +142,8 @@ class OptimalPath:
         # options.resilience_level = 1
         # service = QiskitRuntimeService()
         # # backend = 'ibmq_qasm_simulator'
-        # # backend = 'simulator_statevector'
-        # backend = 'ibm_brisbane'
+        # backend = 'ibm_kyoto'
+        # # backend = 'ibm_brisbane'
         # self.session = Session(service=service, backend=backend)
         # self.sampler = Sampler(session=self.session, options=options)
 
@@ -396,7 +394,7 @@ class OptimalPath:
             return
 
         cur_iter_num = random.randint(int(self.grover_iter_min_num), int(self.grover_iter_max_num))
-        print("cur_iter_num: ", cur_iter_num)
+        # print("cur_iter_num: ", cur_iter_num)
         for _ in range(cur_iter_num):
             qc.append(qc_start, [i for i in range(self.total_qubit_num)])
             qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
@@ -406,12 +404,12 @@ class OptimalPath:
                       [*buffer, res[1], *anc[:self.precision - 1]])
             qc.append(qc_end, [i for i in range(self.total_qubit_num)])
 
-        # print(qc)
-        print("depth: ", qc.depth())
+        # print("depth: ", qc.depth())
         qc.measure(qram, cl)
         backend = Aer.backends(name='qasm_simulator')[0]
         self.job = execute(qc, backend, shots=1000)
         # self.job = self.sampler.run(circuits=qc, shots=1000)
+        # print(self.session.details())
         self.async_grover()
 
     def main(self):
@@ -433,7 +431,6 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    # test_adj = test.test_for_5
     test_points = test.point_test_for_4
     test = OptimalPath(4, test_points, 27)
     print(test.dist_adj)
@@ -471,12 +468,12 @@ if __name__ == '__main__':
     # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
     # print(output)
 
-    # start_time = time.time()
-    # test.async_grover()
-    # end_time = time.time()
-    # print("time: ", end_time - start_time)
-    # path = test.path
-    # print(path)
+    start_time = time.time()
+    test.main()
+    end_time = time.time()
+    print("time: ", end_time - start_time)
+    path = test.path
+    print(path)
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
     # output = execute.local_simulator(test.qc, 1000)

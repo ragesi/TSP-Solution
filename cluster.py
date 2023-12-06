@@ -3,8 +3,8 @@ from TSP_path.optimal_path import OptimalPath
 
 class BaseCluster:
     def __init__(self, point_num, points, class_type):
-        self.head = 0
-        self.tail = point_num - 1
+        self.head = -1
+        self.tail = -1
         self.points = points
         self.point_num = point_num
         self.class_type = class_type

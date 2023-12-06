@@ -1,24 +1,20 @@
-import numpy as np
 import math as m
-from queue import Queue
 
 from clustering.Q_means import QMeans
-from TSP_path.optimal_path import OptimalPath
-from cluster import SingleCluster, Clusters
+from cluster import SingleCluster
 
 
 class TSPSolution:
-    def __init__(self, file_path):
-        self.file_path = file_path
+    def __init__(self):
         self.points = []
         self.point_map = dict()
         self.path = []
 
         self.sub_issue_max_size = 6
-        self.max_qubit_num = 29
+        self.max_qubit_num = 27
 
-    def get_data(self):
-        with open(self.file_path, 'r') as file:
+    def get_data(self, file_path):
+        with open(file_path, 'r') as file:
             lines = file.readlines()
 
         lines = lines[8: -1]
@@ -30,20 +26,27 @@ class TSPSolution:
             self.point_map[tmp_tuple] = tmp_point[0]
 
     @staticmethod
-    def find_diff_clusters_connector(points_1, points_2):
-        min_dist = 1000
-        res_begin = 0
-        res_end = 0
+    def find_diff_clusters_connector(cluster_1, cluster_2):
+        points_1 = cluster_1.get_nodes_in_path()
+        points_2 = cluster_2.get_nodes_in_path()
+        conn_begin = 1 if cluster_1.head == 0 else 0
+        conn_end = 1 if cluster_2.tail == 0 else 0
+        conn_min_dist = abs(points_1[conn_begin][0] - points_2[conn_end][0]) + abs(
+            points_1[conn_begin][1] - points_2[conn_end][1])
 
         for i in range(len(points_1)):
+            if i == cluster_1.head:
+                continue
             for j in range(len(points_2)):
+                if j == cluster_2.tail:
+                    continue
                 cur_dist = abs(points_1[i][0] - points_2[j][0]) + abs(points_1[i][1] - points_2[j][1])
-                if cur_dist < min_dist:
-                    min_dist = cur_dist
-                    res_begin = i
-                    res_end = j
+                if cur_dist < conn_min_dist:
+                    conn_min_dist = cur_dist
+                    conn_begin = i
+                    conn_end = j
 
-        return res_begin, res_end
+        return conn_begin, conn_end
 
     def divide_sub_issue(self):
         if len(self.points) < self.sub_issue_max_size:
@@ -60,6 +63,7 @@ class TSPSolution:
         self.path += split_cluster.points
         for i in range(len(self.path)):
             self.path[i].can_be_split(self.sub_issue_max_size)
+            print(self.path[i].points)
         is_finish = False
         while not is_finish:
             is_finish = True
@@ -74,18 +78,14 @@ class TSPSolution:
                 split_clusters = QMeans(self.path[i].points, split_cluster_num).main()
                 self.path[i] = split_clusters
 
-            if is_finish:
-                break
-
             # after division, get every cluster's begin and end of centroids
             for i in range(len(self.path)):
                 # get the source and target of every cluster
-                begin, end = TSPSolution.find_diff_clusters_connector(self.path[i - 1].get_nodes_in_path,
-                                                                      self.path[i].get_nodes_in_path)
-                self.path[i - 1].end = begin
-                self.path[i].begin = end
+                self.path[i - 1].tail, self.path[i].head = TSPSolution.find_diff_clusters_connector(self.path[i - 1],
+                                                                                                    self.path[i])
                 if i > 0:
                     self.path[i - 1].determine_head_and_tail()
+            self.path[len(self.path) - 1].determine_head_and_tail()
 
             # calculate every cluster's order of centroids
             for i in range(len(self.path)):
@@ -99,8 +99,16 @@ class TSPSolution:
                     self.path[i + j].can_be_split(self.sub_issue_max_size)
 
         # when all clusters are divided to minimum, find optimal paths for all clusters respectively
-        for i in range(len(self.path)):
+        for i in range(len(self.path) - 1, -1, -1):
             cur_clusters = self.path.pop(i)
-            cur_clusters.find_optimal_path(self.sub_issue_max_size)
+            cur_clusters.find_optimal_path(self.max_qubit_num)
             for j in range(cur_clusters.point_num):
                 self.path.insert(i + j, self.point_map[cur_clusters.points[j]])
+
+
+if __name__ == '__main__':
+    file_path = 'dataset/xqf7.tsp'
+    test = TSPSolution()
+    test.get_data(file_path)
+    test.divide_sub_issue()
+    print(test.path)

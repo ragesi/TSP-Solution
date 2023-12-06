@@ -126,8 +126,8 @@ class QMeans:
         is_terminate = True
         for i in np.arange(self.cluster_num):
             for point in self.clusters[i]:
-                new_cluster_id = self.classical_find_optimal_cluster(point)
-                # new_cluster_id = self.find_optimal_cluster(point)
+                # new_cluster_id = self.classical_find_optimal_cluster(point)
+                new_cluster_id = self.find_optimal_cluster(point)
                 new_clusters[new_cluster_id].append(point)
                 if new_cluster_id != i:
                     is_terminate = False
