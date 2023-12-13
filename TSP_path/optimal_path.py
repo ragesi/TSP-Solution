@@ -431,8 +431,8 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.point_test_for_4
-    test = OptimalPath(4, test_points, 27)
+    test_points = test.point_test_for_5
+    test = OptimalPath(5, test_points, 27)
     print(test.dist_adj)
     print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])

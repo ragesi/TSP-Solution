@@ -19,7 +19,10 @@ class QMeans:
         self.iter_num = 15
         self.centroids = []
         self.clusters = [[] for _ in np.arange(self.cluster_num)]
+        self.x_range = None
+        self.y_range = None
 
+        self.init_range()
         self.init_centroid()
         self.init_clusters()
 
@@ -32,9 +35,8 @@ class QMeans:
             print("too many clusters!")
             exit()
 
-        x_range, y_range = QMeans.get_range(self.points)
-        delta_x = 1.0 * (x_range[1] - x_range[0]) / min(self.cluster_num + 1, 4)
-        delta_y = 1.0 * (y_range[1] - y_range[0]) / min(self.cluster_num + 1, 4)
+        delta_x = 1.0 * (self.x_range[1] - self.x_range[0]) / min(self.cluster_num + 1, 4)
+        delta_y = 1.0 * (self.y_range[1] - self.y_range[0]) / min(self.cluster_num + 1, 4)
         if self.cluster_num < 4:
             # linear distribution of center points
             proportion_x = list(range(1, self.cluster_num + 1))
@@ -47,7 +49,7 @@ class QMeans:
                 proportion_x.append(2)
                 proportion_y.append(2)
             elif self.cluster_num == 6:
-                if (x_range[1] - x_range[0]) <= (y_range[1] - y_range[0]):
+                if (self.x_range[1] - self.x_range[0]) <= (self.y_range[1] - self.y_range[0]):
                     proportion_x.extend([1, 3])
                     proportion_y.extend([2, 2])
                 else:
@@ -56,29 +58,26 @@ class QMeans:
 
         for i in np.arange(len(proportion_x)):
             self.centroids.append(
-                [x_range[0] + proportion_x[i] * delta_x, y_range[0] + proportion_y[i] * delta_y])
+                [self.x_range[0] + proportion_x[i] * delta_x, self.y_range[0] + proportion_y[i] * delta_y])
 
     def init_clusters(self):
         for point in self.points:
             self.clusters[self.find_optimal_cluster(point)].append(point)
 
-    @staticmethod
-    def get_range(points):
-        tmp_x = sorted([point[0] for point in points])
-        tmp_y = sorted([point[1] for point in points])
-        return [tmp_x[0], tmp_x[-1]], [tmp_y[0], tmp_y[-1]]
+    def init_range(self):
+        tmp_x = sorted([point[0] for point in self.points])
+        tmp_y = sorted([point[1] for point in self.points])
+        self.x_range = [tmp_x[0], tmp_x[-1]]
+        self.y_range = [tmp_y[0], tmp_y[-1]]
 
-    @staticmethod
-    def to_bloch_state(point, x_range, y_range):
+    def to_bloch_state(self, point):
         """
         transforming bases, which is converting Cartesian coordinates to Bloch coordinates
         :param point: the point waiting to be transformed
-        :param x_range: the x bound of Cartesian coordinate
-        :param y_range: the y bound of Cartesian coordinate
         :return: QuantumCircuit
         """
-        delta_x = (point[0] - x_range[0]) / (1.0 * x_range[1] - x_range[0])
-        delta_y = (point[1] - y_range[0]) / (1.0 * y_range[1] - y_range[0])
+        delta_x = (point[0] - self.x_range[0]) / (1.0 * self.x_range[1] - self.x_range[0])
+        delta_y = (point[1] - self.y_range[0]) / (1.0 * self.y_range[1] - self.y_range[0])
         theta = np.pi / 2 * (delta_x + delta_y)
         phi = np.pi / 2 * (delta_x - delta_y + 1)
 
@@ -99,12 +98,10 @@ class QMeans:
         cl = ClassicalRegister(self.cluster_num)
         qc = QuantumCircuit(q, cl)
 
-        # find the x and y's bound
-        x_range, y_range = QMeans.get_range([point, *self.centroids])
-        point_theta, point_phi = QMeans.to_bloch_state(point, x_range, y_range)
+        point_theta, point_phi = self.to_bloch_state(point)
         for i in range(self.cluster_num):
             qc.u(point_theta, point_phi, 0, q[i * 3 + 1])
-            cent_theta, cent_phi = QMeans.to_bloch_state(self.centroids[i], x_range, y_range)
+            cent_theta, cent_phi = self.to_bloch_state(self.centroids[i])
             qc.u(cent_theta, cent_phi, 0, q[i * 3 + 2])
 
             qc.h(q[i * 3])
@@ -149,12 +146,19 @@ class QMeans:
             self.update_centroids()
             if self.update_clusters():
                 break
+            print(_ + 1)
+            color = ['red', 'green', 'orange', 'blue', 'black']
+            for i in np.arange(2):
+                plt.scatter(self.centroids[i][0], self.centroids[i][1], color=color[i], s=30, marker='x')
+                for point in self.clusters[i]:
+                    plt.scatter(point[0], point[1], color=color[i], s=5)
+            plt.show()
 
         return Clusters(self.centroids, self.clusters)
 
 
 if __name__ == '__main__':
-    with open('../dataset/xqf131.tsp', 'r') as file:
+    with open('../dataset/xqf7.tsp', 'r') as file:
         lines = file.readlines()
 
     lines = lines[8: -1]
@@ -163,12 +167,15 @@ if __name__ == '__main__':
         point = line.strip().split(' ')[1:]
         points.append([float(point[i]) for i in np.arange(len(point))])
 
-    test = QMeans(points, 5)
-    test.main()
+    test = QMeans(points, 2)
+    # test.main()
 
+    print('0')
     color = ['red', 'green', 'orange', 'blue', 'black']
-    for i in np.arange(5):
+    for i in np.arange(2):
         plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
         for point in test.clusters[i]:
             plt.scatter(point[0], point[1], color=color[i], s=5)
     plt.show()
+
+    test.main()
