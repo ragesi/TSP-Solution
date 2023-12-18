@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, Aer, execute
+from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-from utils import display_result as disp
+from utils import display_result as disp, util
 from cluster import Clusters
+import random
 
 
 class QMeans:
@@ -19,6 +21,7 @@ class QMeans:
         self.iter_num = 15
         self.centroids = []
         self.clusters = [[] for _ in np.arange(self.cluster_num)]
+        self.range = None
         self.x_range = None
         self.y_range = None
 
@@ -30,35 +33,42 @@ class QMeans:
         """
         initial the centroids for every cluster
         """
-        # TODO: 此处可以使用论文中的方法去设置中心点
-        if self.cluster_num > 6:
-            print("too many clusters!")
-            exit()
+        centroid_set = set()
+        point_num = len(self.points)
+        while len(centroid_set) < self.cluster_num:
+            tmp_index = random.randint(0, point_num - 1)
+            if tmp_index not in centroid_set:
+                centroid_set.add(tmp_index)
+                self.centroids.append(self.points[tmp_index])
 
-        delta_x = 1.0 * (self.x_range[1] - self.x_range[0]) / min(self.cluster_num + 1, 4)
-        delta_y = 1.0 * (self.y_range[1] - self.y_range[0]) / min(self.cluster_num + 1, 4)
-        if self.cluster_num < 4:
-            # linear distribution of center points
-            proportion_x = list(range(1, self.cluster_num + 1))
-            proportion_y = list(range(1, self.cluster_num + 1))
-        else:
-            # the four corners firstly
-            proportion_x = [1, 1, 3, 3]
-            proportion_y = [1, 3, 1, 3]
-            if self.cluster_num == 5:
-                proportion_x.append(2)
-                proportion_y.append(2)
-            elif self.cluster_num == 6:
-                if (self.x_range[1] - self.x_range[0]) <= (self.y_range[1] - self.y_range[0]):
-                    proportion_x.extend([1, 3])
-                    proportion_y.extend([2, 2])
-                else:
-                    proportion_x.extend([2, 2])
-                    proportion_y.extend([1, 3])
-
-        for i in np.arange(len(proportion_x)):
-            self.centroids.append(
-                [self.x_range[0] + proportion_x[i] * delta_x, self.y_range[0] + proportion_y[i] * delta_y])
+        # if self.cluster_num > 6:
+        #     print("too many clusters!")
+        #     exit()
+        #
+        # delta_x = 1.0 * (self.x_range[-1] - self.x_range[0]) / min(self.cluster_num + 1, 4)
+        # delta_y = 1.0 * (self.y_range[-1] - self.y_range[0]) / min(self.cluster_num + 1, 4)
+        # if self.cluster_num < 4:
+        #     # linear distribution of center points
+        #     proportion_x = list(range(1, self.cluster_num + 1))
+        #     proportion_y = list(range(1, self.cluster_num + 1))
+        # else:
+        #     # the four corners firstly
+        #     proportion_x = [1, 1, 3, 3, 2]
+        #     proportion_y = [1, 3, 1, 3, 2]
+        #     # if self.cluster_num == 5:
+        #     #     proportion_x.append(2)
+        #     #     proportion_y.append(2)
+        #     # elif self.cluster_num == 6:
+        #     #     if (self.x_range[1] - self.x_range[0]) <= (self.y_range[1] - self.y_range[0]):
+        #     #         proportion_x.extend([1, 3])
+        #     #         proportion_y.extend([2, 2])
+        #     #     else:
+        #     #         proportion_x.extend([2, 2])
+        #     #         proportion_y.extend([1, 3])
+        #
+        # for i in np.arange(len(proportion_x)):
+        #     self.centroids.append(
+        #         [self.x_range[0] + proportion_x[i] * delta_x, self.y_range[0] + proportion_y[i] * delta_y])
 
     def init_clusters(self):
         for point in self.points:
@@ -67,6 +77,7 @@ class QMeans:
     def init_range(self):
         tmp_x = sorted([point[0] for point in self.points])
         tmp_y = sorted([point[1] for point in self.points])
+        self.range = max(tmp_x[-1] - tmp_x[0], tmp_y[-1] - tmp_y[0])
         self.x_range = [tmp_x[0], tmp_x[-1]]
         self.y_range = [tmp_y[0], tmp_y[-1]]
 
@@ -76,8 +87,8 @@ class QMeans:
         :param point: the point waiting to be transformed
         :return: QuantumCircuit
         """
-        delta_x = (point[0] - self.x_range[0]) / (1.0 * self.x_range[1] - self.x_range[0])
-        delta_y = (point[1] - self.y_range[0]) / (1.0 * self.y_range[1] - self.y_range[0])
+        delta_x = (point[0] - self.x_range[0]) / (1.0 * self.range)
+        delta_y = (point[1] - self.y_range[0]) / (1.0 * self.range)
         theta = np.pi / 2 * (delta_x + delta_y)
         phi = np.pi / 2 * (delta_x - delta_y + 1)
 
@@ -147,8 +158,8 @@ class QMeans:
             if self.update_clusters():
                 break
             print(_ + 1)
-            color = ['red', 'green', 'orange', 'blue', 'black']
-            for i in np.arange(2):
+            color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
+            for i in np.arange(7):
                 plt.scatter(self.centroids[i][0], self.centroids[i][1], color=color[i], s=30, marker='x')
                 for point in self.clusters[i]:
                     plt.scatter(point[0], point[1], color=color[i], s=5)
@@ -158,7 +169,7 @@ class QMeans:
 
 
 if __name__ == '__main__':
-    with open('../dataset/xqf7.tsp', 'r') as file:
+    with open('../dataset/xqf131.tsp', 'r') as file:
         lines = file.readlines()
 
     lines = lines[8: -1]
@@ -167,15 +178,22 @@ if __name__ == '__main__':
         point = line.strip().split(' ')[1:]
         points.append([float(point[i]) for i in np.arange(len(point))])
 
-    test = QMeans(points, 2)
+    test = QMeans(points, 7)
     # test.main()
 
     print('0')
-    color = ['red', 'green', 'orange', 'blue', 'black']
-    for i in np.arange(2):
+    color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
+    for i in np.arange(7):
         plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
         for point in test.clusters[i]:
             plt.scatter(point[0], point[1], color=color[i], s=5)
     plt.show()
 
     test.main()
+
+    color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
+    for i in np.arange(7):
+        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
+        for point in test.clusters[i]:
+            plt.scatter(point[0], point[1], color=color[i], s=5)
+    plt.show()
