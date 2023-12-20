@@ -29,8 +29,8 @@ class TSPSolution:
     def find_diff_clusters_connector(cluster_1, cluster_2):
         points_1 = cluster_1.get_nodes_in_path()
         points_2 = cluster_2.get_nodes_in_path()
-        conn_begin = 1 if cluster_1.head == 0 else 0
-        conn_end = 1 if cluster_2.tail == 0 else 0
+        conn_begin = 1 if (cluster_1.head == 0 and cluster_1.point_num > 1) else 0
+        conn_end = 1 if (cluster_2.tail == 0 and cluster_2.point_num > 1) else 0
         conn_min_dist = abs(points_1[conn_begin][0] - points_2[conn_end][0]) + abs(
             points_1[conn_begin][1] - points_2[conn_end][1])
 
@@ -88,14 +88,14 @@ class TSPSolution:
             self.path[len(self.path) - 1].determine_head_and_tail()
 
             # calculate every cluster's order of centroids
-            for i in range(len(self.path)):
+            for i in range(len(self.path) - 1, -1, -1):
                 if self.path[i].class_type == 0:
                     continue
 
                 cur_clusters = self.path.pop(i)
                 cur_clusters.find_optimal_path(self.max_qubit_num)
                 self.path[i: i] = cur_clusters.points
-                for j in range(i, i + cur_clusters.point_num):
+                for j in range(cur_clusters.point_num):
                     self.path[i + j].can_be_split(self.sub_issue_max_size)
 
         # when all clusters are divided to minimum, find optimal paths for all clusters respectively

@@ -20,8 +20,11 @@ class OptimalPath:
         :param point_num: the number of cities in the route
         :param points: coordinates of all nodes
         """
-        self.points = points
         self.point_num = point_num
+        if point_num < 4:
+            return
+
+        self.points = points
         self.total_qubit_num = total_qubit_num
         # the number of choices for every step, excluding the start and the end
         self.choice_num = point_num - 2
@@ -103,9 +106,6 @@ class OptimalPath:
         self.dist_adj[:, :self.choice_num] = dist_adj[:, :self.choice_num]
 
     def init_grover_param(self):
-        if self.point_num < 4:
-            return
-
         # adjust the number of bits of every quantum register
         if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
             raise ValueError("The number of nodes is too much!")
@@ -431,10 +431,10 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.point_test_for_5
-    test = OptimalPath(5, test_points, 27)
-    print(test.dist_adj)
-    print(test.end_dists)
+    test_points = test.point_test_for_2
+    test = OptimalPath(2, test_points, 27)
+    # print(test.dist_adj)
+    # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
     # test.qc.append(test.check_dist_below_threshold(53), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
@@ -469,10 +469,9 @@ if __name__ == '__main__':
     # print(output)
 
     start_time = time.time()
-    test.main()
+    path = test.main()
     end_time = time.time()
     print("time: ", end_time - start_time)
-    path = test.path
     print(path)
 
     # test.qc.measure([*test.qram, test.res[0]], test.cl)
