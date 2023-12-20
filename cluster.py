@@ -58,7 +58,7 @@ class Clusters(BaseCluster):
             self.points.append(SingleCluster(centroids[i], points[i]))
 
     def get_nodes_in_path(self):
-        return [centroid for centroid in self.points]
+        return [point.centroid for point in self.points]
 
     def find_optimal_circle(self, total_qubit_num):
         self.path_to_circle()
