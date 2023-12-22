@@ -1,0 +1,1141 @@
+D:\Programs\Anaconda3\envs\qiskitenv\python.exe "C:/Users/Lenovo/Desktop/研究生/TSP Solution/main.py"
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  41.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 3, 2]
+new_threshold:  63.0
+new_path:  [2, 3, 0, 1]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [2, 3, 0, 1]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [2, 3, 0, 1]
+[(0, 12), (0, 25), (0, 26), (0, 27), (0, 28), (0, 43), (0, 45), (2, 11), (2, 15), (2, 24), (2, 34), (2, 36), (2, 38), (2, 40), (2, 42), (2, 44), (2, 9), (5, 15), (5, 20), (5, 25), (5, 29), (5, 35), (8, 45), (9, 17), (9, 26), (9, 33), (9, 38), (10, 14), (10, 17), (10, 24), (10, 26), (10, 33), (11, 14), (11, 17), (11, 24), (11, 26), (11, 33), (11, 5), (12, 17), (12, 26), (12, 45), (15, 15), (15, 20), (15, 25), (15, 29), (15, 45), (18, 18), (18, 19), (18, 21), (18, 22), (18, 27), (18, 28), (18, 30), (18, 31), (25, 13), (25, 17), (25, 20), (25, 22), (25, 24), (25, 26), (25, 28), (25, 30), (25, 32), (25, 33), (25, 35), (25, 37), (25, 40), (25, 41), (25, 43), (25, 45), (25, 6), (28, 18), (28, 21), (31, 31), (32, 19), (32, 24), (33, 17), (33, 19), (34, 17), (34, 19), (34, 37), (35, 31), (38, 18), (38, 31), (40, 6), (41, 13), (34, 45), (0, 44), (2, 47), (17, 47), (2, 49), (2, 51), (25, 47), (17, 49), (40, 41), (34, 49), (40, 33), (40, 35), (41, 37), (40, 43), (40, 42), (2, 53), (0, 51), (11, 51), (48, 12)]
+[(40, 34), (103, 23), (107, 14), (72, 47), (51, 7), (71, 45), (94, 21), (51, 9), (108, 0), (48, 14), (62, 0), (48, 13), (103, 13), (94, 23), (103, 5), (60, 0), (55, 11), (61, 0), (87, 32), (94, 9), (97, 14), (57, 5), (57, 8), (87, 29), (94, 18), (94, 19), (87, 13), (48, 27), (48, 28), (48, 30), (48, 32), (48, 36), (48, 40), (48, 44), (51, 23), (51, 36), (51, 38), (51, 40), (51, 42), (55, 20), (56, 20), (56, 35), (56, 39), (57, 15), (57, 20), (57, 32), (57, 35), (57, 39), (58, 20), (61, 23), (61, 36), (61, 38), (61, 40), (61, 42), (61, 9), (63, 28), (63, 29), (63, 30), (63, 44), (63, 45), (63, 46), (63, 47), (64, 21), (64, 22), (64, 24), (64, 25), (64, 32), (71, 13), (71, 17), (71, 30), (71, 31), (71, 46), (71, 6), (72, 32), (74, 18), (79, 17), (80, 17), (80, 19), (80, 34), (84, 18), (86, 6), (94, 11), (48, 45), (48, 46), (57, 51), (48, 47)]
+[(77, 56), (77, 62), (78, 49), (78, 56), (78, 62), (78, 70), (79, 49), (79, 56), (79, 62), (79, 73), (80, 49), (80, 56), (80, 63), (80, 71), (80, 73), (81, 49), (81, 56), (84, 52), (84, 91), (87, 44), (87, 47), (87, 50), (87, 51), (87, 53), (87, 54), (87, 57), (87, 58), (87, 60), (87, 61), (87, 62), (87, 65), (87, 66), (87, 68), (87, 69), (87, 70), (94, 41), (94, 42), (94, 45), (94, 47), (94, 48), (94, 51), (94, 52), (94, 54), (94, 57), (94, 58), (94, 59), (94, 66), (94, 68), (94, 81), (95, 43), (97, 29), (97, 48), (97, 52), (97, 55), (97, 67), (97, 73), (97, 78), (97, 85), (97, 88), (97, 92), (100, 45), (101, 45), (101, 48), (101, 52), (101, 56), (101, 65), (101, 70), (102, 46), (102, 50), (102, 54), (102, 65), (102, 70), (103, 30), (103, 45), (103, 54), (103, 60), (103, 65), (103, 70), (103, 77), (103, 83), (103, 86), (104, 26), (104, 70), (107, 29), (107, 47), (107, 51), (107, 55), (107, 73), (107, 78), (108, 97), (109, 21), (109, 81), (110, 23), (110, 40), (110, 43), (110, 71), (110, 72), (110, 74), (110, 75), (74, 52), (84, 89), (79, 70), (74, 60), (80, 88), (109, 19), (78, 73), (77, 70), (74, 75), (109, 20), (74, 68)]
+[(74, 83), (74, 87), (34, 88), (74, 89), (71, 74), (74, 79), (74, 91), (71, 76), (71, 78), (71, 80), (71, 87), (48, 51), (48, 53), (48, 55), (57, 58), (71, 82), (71, 84), (61, 71), (48, 57), (48, 59), (48, 60), (48, 62), (57, 64), (61, 58), (63, 60), (63, 61), (63, 62), (61, 92), (61, 97), (62, 97), (57, 73), (61, 69), (48, 64), (48, 66), (51, 69), (51, 71), (56, 68), (56, 73), (57, 68), (57, 86), (58, 89), (60, 97), (41, 69), (48, 69), (48, 71), (48, 74), (48, 76), (48, 80), (51, 75), (51, 79), (51, 88), (55, 73), (40, 70), (40, 84), (38, 89), (38, 91), (40, 78), (41, 77), (41, 85), (48, 78), (48, 82), (48, 84), (51, 83), (51, 92)]
+[(2, 55), (0, 57), (0, 63), (0, 69), (0, 76), (2, 57), (2, 60), (2, 62), (2, 63), (2, 65), (2, 67), (2, 70), (2, 72), (2, 73), (2, 75), (5, 60), (5, 72), (5, 75), (9, 70), (10, 59), (10, 70), (10, 73), (11, 58), (11, 59), (11, 67), (11, 70), (11, 73), (15, 58), (15, 60), (17, 63), (17, 64), (17, 65), (18, 67), (0, 82), (5, 78), (5, 82), (9, 73), (11, 76), (12, 79), (5, 86), (5, 90), (9, 83), (9, 86), (9, 90), (10, 84), (10, 88), (15, 82), (15, 85), (25, 70), (25, 78), (15, 89), (25, 71), (25, 77), (25, 85), (28, 89), (25, 84), (25, 97), (28, 91)]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  47.0
+iter_num:  2.523900801022046
+new_path:  [2, 3, 1, 0]
+new_threshold:  51.0
+new_path:  [3, 0, 2, 1]
+new_threshold:  55.0
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+new_path:  [2, 0, 1, 3]
+new_threshold:  57.0
+new_path:  [2, 0, 1, 3]
+new_path:  [2, 1, 0, 3]
+new_threshold:  60.0
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 1, 0, 3]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  42.0
+iter_num:  2.523900801022046
+new_path:  [1, 2, 0, 3]
+new_threshold:  53.0
+new_path:  [0, 2, 3, 1]
+new_threshold:  55.0
+new_path:  [1, 3, 0, 2]
+new_threshold:  60.0
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  48.0
+iter_num:  2.523900801022046
+new_path:  [0, 3, 2, 1]
+new_threshold:  55.0
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 1, 2]
+new_threshold:  57.0
+new_path:  [1, 2, 3, 0]
+new_path:  [3, 0, 2, 1]
+new_threshold:  58.0
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+new_path:  [1, 3, 0, 2]
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 1, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  44.0
+iter_num:  2.523900801022046
+new_path:  [3, 0, 2, 1]
+new_threshold:  53.0
+new_path:  [3, 2, 0, 1]
+new_path:  [2, 0, 3, 1]
+new_threshold:  62.0
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  51.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0, 3]
+new_threshold:  55.0
+new_path:  [1, 2, 3, 0]
+new_threshold:  56.0
+new_path:  [1, 0, 2, 3]
+new_threshold:  59.0
+new_path:  [1, 0, 2, 3]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [1, 0, 2, 3]
+new_path:  [3, 2, 1, 0]
+new_path:  [1, 0, 2, 3]
+new_path:  [1, 0, 2, 3]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  52.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [1, 0, 2]
+new_threshold:  59.0
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  56.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0]
+new_threshold:  60.0
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  46.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [0, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  41.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [1, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  48.0
+iter_num:  2.523900801022046
+new_path:  [2, 0, 1]
+new_threshold:  63.0
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  52.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [1, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  33.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_threshold:  62.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  30.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 1]
+new_threshold:  42.0
+new_path:  [2, 1, 0]
+new_threshold:  53.0
+new_path:  [2, 1, 0]
+new_path:  [1, 2, 0]
+new_threshold:  63.0
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  52.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  42.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [2, 0, 1]
+new_path:  [0, 1, 2]
+new_path:  [3, 1, 3]
+new_path:  [2, 0, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  47.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2, 3]
+new_path:  [3, 2, 0, 1]
+new_threshold:  53.0
+new_path:  [2, 0, 3, 1]
+new_path:  [1, 0, 2, 3]
+new_path:  [3, 1, 2, 0]
+new_path:  [3, 0, 2, 1]
+new_threshold:  59.0
+new_path:  [3, 0, 2, 1]
+new_path:  [1, 2, 0, 3]
+new_path:  [1, 2, 0, 3]
+new_path:  [3, 0, 2, 1]
+new_path:  [1, 2, 0, 3]
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+new_path:  [3, 0, 2, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  54.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 2]
+new_threshold:  60.0
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  49.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 2, 3]
+new_path:  [1, 0, 2, 3]
+new_path:  [3, 2, 0, 1]
+new_threshold:  55.0
+new_path:  [2, 3, 1, 0]
+new_threshold:  57.0
+new_path:  [2, 3, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [3, 2, 1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  40.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 3, 1]
+new_threshold:  55.0
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 0, 3, 1]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 1, 3]
+new_path:  [0, 2, 1, 3]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 3, 1]
+new_path:  [2, 0, 3, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  50.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  43.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 2]
+new_threshold:  49.0
+new_path:  [1, 2, 0]
+new_threshold:  60.0
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  60.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  34.0
+iter_num:  2.523900801022046
+new_path:  [1, 2, 0]
+new_threshold:  56.0
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  55.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  57.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  56.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 2, 1]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  53.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  62.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  57.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  38.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [1, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  27.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [1, 2, 0]
+new_threshold:  52.0
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+new_path:  [1, 2, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  43.0
+iter_num:  2.523900801022046
+new_path:  [3, 2, 1, 0]
+new_path:  [2, 0, 1, 3]
+new_threshold:  48.0
+new_path:  [2, 1, 0, 3]
+new_threshold:  54.0
+new_path:  [2, 0, 3, 1]
+new_path:  [1, 3, 0, 2]
+new_path:  [2, 0, 3, 1]
+new_path:  [2, 1, 0, 3]
+new_path:  [2, 3, 0, 1]
+new_path:  [3, 0, 1, 2]
+new_threshold:  55.0
+new_path:  [0, 3, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  53.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_path:  [1, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  50.0
+iter_num:  2.523900801022046
+new_path:  [0, 3, 2, 1]
+new_path:  [3, 2, 1, 0]
+new_path:  [0, 3, 2, 1]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 0, 1]
+new_threshold:  62.0
+new_path:  [3, 2, 0, 1]
+new_path:  [2, 3, 0, 1]
+new_path:  [3, 2, 0, 1]
+new_path:  [3, 2, 0, 1]
+new_path:  [2, 3, 0, 1]
+new_path:  [2, 3, 0, 1]
+new_path:  [2, 3, 0, 1]
+new_path:  [3, 2, 0, 1]
+new_path:  [3, 2, 0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  55.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  57.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  25.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 0]
+new_threshold:  38.0
+new_path:  [1, 0]
+new_threshold:  60.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  36.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [1, 0]
+new_threshold:  59.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  60.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  55.0
+iter_num:  2.523900801022046
+new_path:  [0, 3, 1, 2]
+new_threshold:  61.0
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+new_path:  [0, 3, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  53.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [1, 2, 0]
+new_threshold:  54.0
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [1, 2, 0]
+new_path:  [2, 1, 0]
+new_path:  [1, 2, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  59.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  54.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  49.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  39.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_threshold:  46.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  42.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 1]
+new_threshold:  57.0
+new_path:  [0, 2, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [0, 2, 1]
+new_path:  [2, 0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  49.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [1, 0, 2]
+new_path:  [0, 1, 2]
+new_path:  [2, 1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  49.0
+iter_num:  2.523900801022046
+new_path:  [2, 0, 1, 3]
+new_threshold:  50.0
+new_path:  [2, 3, 1, 0]
+new_path:  [1, 0, 3, 2]
+new_threshold:  51.0
+new_path:  [0, 1, 3, 2]
+new_threshold:  56.0
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 1, 3, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  62.0
+iter_num:  2.523900801022046
+new_path:  [1, 0, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [1, 0, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  45.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0]
+new_threshold:  54.0
+new_path:  [2, 0, 1]
+new_threshold:  55.0
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  52.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  48.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  47.0
+iter_num:  2.523900801022046
+new_path:  [1, 2, 0]
+new_threshold:  54.0
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [1, 2, 0]
+new_path:  [0, 2, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  50.0
+iter_num:  2.523900801022046
+new_path:  [0, 3, 1, 2]
+new_threshold:  54.0
+new_path:  [0, 3, 1, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [3, 0, 1, 2]
+new_threshold:  55.0
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+new_path:  [3, 0, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  51.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 1]
+new_threshold:  63.0
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  63.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  57.0
+iter_num:  2.523900801022046
+new_path:  [1, 2, 0]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 1, 0]
+new_path:  [2, 0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  54.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  60.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  54.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [2, 1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  37.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2, 3]
+new_path:  [2, 1, 3, 0]
+new_threshold:  57.0
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 1, 3, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+new_path:  [2, 3, 1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  47.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 1]
+new_path:  [1, 2, 0]
+new_threshold:  50.0
+new_path:  [1, 2, 0]
+new_path:  [2, 1, 0]
+new_path:  [1, 2, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  47.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [0, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  47.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_threshold:  48.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  61.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [1, 0, 2]
+new_path:  [0, 1, 2]
+new_path:  [1, 0, 2]
+new_path:  [0, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  52.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  24.0
+iter_num:  1.0
+new_path:  [1, 0]
+new_threshold:  61.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  44.0
+iter_num:  2.523900801022046
+new_path:  [1, 2, 0, 3]
+new_threshold:  51.0
+new_path:  [2, 0, 1, 3]
+new_threshold:  55.0
+new_path:  [1, 3, 2, 0]
+new_threshold:  56.0
+new_path:  [3, 1, 0, 2]
+new_threshold:  59.0
+new_path:  [3, 1, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [3, 1, 0, 2]
+new_path:  [3, 1, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [3, 1, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [1, 3, 0, 2]
+new_path:  [3, 1, 0, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  48.0
+iter_num:  2.523900801022046
+new_path:  [0, 2, 1]
+new_threshold:  53.0
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  59.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  63.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+new_path:  [0, 1, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  43.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0]
+new_threshold:  54.0
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  46.0
+iter_num:  2.523900801022046
+new_path:  [0, 1, 2, 3]
+new_path:  [3, 2, 1, 0]
+new_threshold:  58.0
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+new_path:  [3, 2, 1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  59.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  57.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  45.0
+iter_num:  2.523900801022046
+new_path:  [2, 0, 3, 1]
+new_threshold:  53.0
+new_path:  [0, 2, 3, 1]
+new_threshold:  59.0
+new_path:  [1, 3, 2, 0]
+new_path:  [1, 3, 2, 0]
+new_path:  [0, 2, 3, 1]
+new_path:  [1, 3, 2, 0]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 3, 1]
+new_path:  [1, 3, 2, 0]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 3, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  55.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [0, 1]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  40.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 0]
+new_threshold:  52.0
+new_path:  [1, 2, 0]
+new_path:  [2, 1, 0]
+new_path:  [2, 1, 0]
+new_path:  [1, 2, 0]
+new_path:  [2, 1, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  59.0
+iter_num:  2.523900801022046
+new_path:  [3, 1, 2, 0]
+new_threshold:  61.0
+new_path:  [0, 1, 3, 2]
+new_path:  [0, 2, 3, 1]
+new_path:  [1, 3, 2, 0]
+new_path:  [2, 1, 3, 0]
+new_path:  [0, 2, 3, 1]
+new_path:  [3, 1, 2, 0]
+new_path:  [2, 1, 3, 0]
+new_path:  [3, 1, 2, 0]
+new_path:  [1, 3, 2, 0]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  45.0
+iter_num:  2.523900801022046
+new_path:  [1, 3, 2, 0]
+new_threshold:  46.0
+new_path:  [1, 2, 3, 0]
+new_path:  [1, 3, 2, 0]
+new_path:  [2, 0, 1, 3]
+new_threshold:  47.0
+new_path:  [3, 1, 0, 2]
+new_path:  [3, 1, 0, 2]
+new_path:  [2, 1, 0, 3]
+new_path:  [1, 2, 0, 3]
+new_path:  [1, 0, 3, 2]
+new_threshold:  51.0
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+new_path:  [1, 0, 3, 2]
+qram_num:  6
+buffer_num:  6
+anc_num:  12
+res_num:  3
+threshold:  42.0
+iter_num:  2.523900801022046
+new_path:  [2, 0, 1]
+new_threshold:  50.0
+new_path:  [0, 2, 1]
+new_path:  [0, 2, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+new_path:  [2, 0, 1]
+qram_num:  8
+buffer_num:  6
+anc_num:  10
+res_num:  3
+threshold:  48.0
+iter_num:  2.523900801022046
+new_path:  [2, 1, 3, 0]
+new_path:  [2, 1, 3, 0]
+new_path:  [2, 3, 0, 1]
+new_threshold:  49.0
+new_path:  [0, 2, 3, 1]
+new_threshold:  53.0
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 2, 3, 1]
+new_path:  [0, 3, 2, 1]
+new_threshold:  58.0
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+new_path:  [0, 3, 2, 1]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  30.0
+iter_num:  1.0
+new_path:  [0, 1]
+new_path:  [1, 0]
+new_threshold:  60.0
+new_path:  [1, 0]
+new_path:  [1, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  48.0
+iter_num:  1.0
+new_path:  [1, 1]
+new_path:  [0, 0]
+qram_num:  2
+buffer_num:  6
+anc_num:  16
+res_num:  3
+threshold:  53.0
+iter_num:  1.0
+new_path:  [0, 0]
+new_path:  [0, 0]
+[25, 23, 8, 24, 27, 9, 26, 20, 18, 44, 19, 21, 22, 6, 7, 52, 78, 100, 99, 93, 87, 56, 62, 89, 72, 73, 90, 85, 63, 53, 40, 77, 39, 15, 1, 16, 41, 5, 4, 3, 2, 17, 42, 43, 54, 75, 65, 64, 74, 104, 105, 106, 107, 113, 130, 118, 144, 117, 115, 114, 138, 139, 116, 119, 120, 121, 122, 86, 55, 66, 76, 91, 92, 108, 109, 110, 111, 123, 142, 124, 125, 126, 127, 128, 129, 151, 150, 163, 162, 161, 169, 160, 158, 155, 149, 153, 148, 143, 146, 145, 147, 154, 168, 164, 173, 174, 175, 209, 215, 230, 236, 251, 225, 217, 240, 254, 242, 176, 178, 177, 220, 226, 238, 218, 203, 159, 181, 206, 205, 207, 182, 185, 184, 183, 275, 286, 276, 261, 262, 231, 260, 259, 247, 246, 245, 244, 229, 222, 228, 204, 180, 179, 221, 227, 256, 257, 258, 270, 274, 273, 285, 269, 268, 243, 267, 266, 272, 305, 312, 311, 287, 271, 277, 326, 327, 346, 365, 367, 404, 390, 411, 394, 391, 347, 322, 348, 349, 350, 328, 313, 329, 341, 343, 344, 345, 342, 339, 340, 303, 290, 291, 299, 298, 289, 302, 316, 308, 309, 317, 310, 304, 318, 319, 325, 324, 374, 364, 375, 376, 377, 412, 401, 400, 399, 398, 373, 384, 389, 403, 409, 421, 420, 422, 423, 410, 416, 397, 396, 388, 383, 372, 363, 362, 382, 381, 387, 395, 408, 407, 406, 418, 419, 393, 385, 379, 378, 366, 353, 369, 380, 386, 360, 359, 357, 356, 370, 371, 358, 361, 334, 337, 338, 336, 335, 288, 306, 300, 314, 320, 323, 297, 301, 307, 315, 321, 333, 332, 330, 331, 354, 355, 352, 351, 368, 392, 405, 402, 417, 414, 413, 415, 263, 265, 264, 248, 232, 233, 234, 249, 250, 223, 191, 186, 187, 188, 189, 190, 192, 193, 170, 165, 194, 213, 201, 212, 199, 200, 198, 211, 224, 235, 219, 210, 208, 195, 196, 197, 294, 295, 296, 284, 293, 283, 282, 281, 292, 279, 278, 280, 237, 214, 216, 239, 252, 253, 255, 241, 157, 156, 152, 172, 167, 166, 202, 171, 133, 134, 135, 136, 140, 137, 141, 50, 51, 97, 96, 98, 71, 61, 60, 70, 59, 46, 36, 35, 37, 38, 13, 47, 48, 49, 14, 81, 57, 68, 82, 58, 69, 83, 84, 88, 112, 132, 131, 103, 102, 101, 67, 80, 79, 94, 95, 31, 33, 34, 12, 11, 32, 30, 10, 45, 29, 28]
+
+Process finished with exit code 0

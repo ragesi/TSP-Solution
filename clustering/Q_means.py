@@ -41,35 +41,6 @@ class QMeans:
                 centroid_set.add(tmp_index)
                 self.centroids.append(self.points[tmp_index])
 
-        # if self.cluster_num > 6:
-        #     print("too many clusters!")
-        #     exit()
-        #
-        # delta_x = 1.0 * (self.x_range[-1] - self.x_range[0]) / min(self.cluster_num + 1, 4)
-        # delta_y = 1.0 * (self.y_range[-1] - self.y_range[0]) / min(self.cluster_num + 1, 4)
-        # if self.cluster_num < 4:
-        #     # linear distribution of center points
-        #     proportion_x = list(range(1, self.cluster_num + 1))
-        #     proportion_y = list(range(1, self.cluster_num + 1))
-        # else:
-        #     # the four corners firstly
-        #     proportion_x = [1, 1, 3, 3]
-        #     proportion_y = [1, 3, 1, 3]
-        #     if self.cluster_num == 5:
-        #         proportion_x.append(2)
-        #         proportion_y.append(2)
-        #     elif self.cluster_num == 6:
-        #         if (self.x_range[1] - self.x_range[0]) <= (self.y_range[1] - self.y_range[0]):
-        #             proportion_x.extend([1, 3])
-        #             proportion_y.extend([2, 2])
-        #         else:
-        #             proportion_x.extend([2, 2])
-        #             proportion_y.extend([1, 3])
-        #
-        # for i in np.arange(len(proportion_x)):
-        #     self.centroids.append(
-        #         [self.x_range[0] + proportion_x[i] * delta_x, self.y_range[0] + proportion_y[i] * delta_y])
-
     def init_clusters(self):
         for point in self.points:
             self.clusters[self.find_optimal_cluster(point)].append(point)
