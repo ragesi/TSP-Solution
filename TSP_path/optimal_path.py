@@ -141,8 +141,8 @@ class OptimalPath:
         # options.optimization_level = 0
         # options.resilience_level = 1
         # service = QiskitRuntimeService()
-        # # backend = 'ibmq_qasm_simulator'
-        # backend = 'ibm_kyoto'
+        # backend = 'ibmq_qasm_simulator'
+        # # backend = 'ibm_kyoto'
         # # backend = 'ibm_brisbane'
         # self.session = Session(service=service, backend=backend)
         # self.sampler = Sampler(session=self.session, options=options)
@@ -431,8 +431,8 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.point_test_for_2
-    test = OptimalPath(2, test_points, 27)
+    test_points = test.point_test_for_7
+    test = OptimalPath(7, test_points, 29)
     # print(test.dist_adj)
     # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])

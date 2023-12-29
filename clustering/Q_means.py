@@ -24,6 +24,7 @@ class QMeans:
         self.range = None
         self.x_range = None
         self.y_range = None
+        # self.boundary = set()
 
         self.init_range()
         self.init_centroid()
@@ -43,7 +44,8 @@ class QMeans:
 
     def init_clusters(self):
         for point in self.points:
-            self.clusters[self.find_optimal_cluster(point)].append(point)
+            # self.clusters[self.find_optimal_cluster(point)].append(point)
+            self.clusters[self.classical_find_optimal_cluster(point)].append(point)
 
     def init_range(self):
         tmp_x = sorted([point[0] for point in self.points])
@@ -99,14 +101,19 @@ class QMeans:
             for i in np.arange(self.cluster_num):
                 dists[i] += item[1] if item[0][i] == '0' else 0
         return dists.index(max(dists))
+        # dists.sort(reverse=True)
+        # if dists[0] - dists[1] < 10:
+        #     self.boundary.add(tuple(point))
+        # return res_index
+
 
     def update_clusters(self):
         new_clusters = [[] for _ in np.arange(self.cluster_num)]
         is_terminate = True
         for i in np.arange(self.cluster_num):
             for point in self.clusters[i]:
-                # new_cluster_id = self.classical_find_optimal_cluster(point)
-                new_cluster_id = self.find_optimal_cluster(point)
+                new_cluster_id = self.classical_find_optimal_cluster(point)
+                # new_cluster_id = self.find_optimal_cluster(point)
                 new_clusters[new_cluster_id].append(point)
                 if new_cluster_id != i:
                     is_terminate = False
@@ -125,17 +132,17 @@ class QMeans:
 
     def main(self):
         for _ in np.arange(self.iter_num):
-        # while True:
             self.update_centroids()
+            # self.boundary = set()
             if self.update_clusters():
                 break
-            # print(_ + 1)
-            # color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
-            # for i in np.arange(7):
-            #     plt.scatter(self.centroids[i][0], self.centroids[i][1], color=color[i], s=30, marker='x')
-            #     for point in self.clusters[i]:
-            #         plt.scatter(point[0], point[1], color=color[i], s=5)
-            # plt.show()
+            print(_ + 1)
+            colors = plt.cm.rainbow(np.linspace(0, 1, 22))
+            for i in np.arange(22):
+                plt.scatter(self.centroids[i][0], self.centroids[i][1], color=colors[i], s=30, marker='x')
+                for point in self.clusters[i]:
+                    plt.scatter(point[0], point[1], color=colors[i], s=5)
+            plt.show()
 
         return Clusters(self.centroids, self.clusters)
 
@@ -150,22 +157,21 @@ if __name__ == '__main__':
         point = line.strip().split(' ')[1:]
         points.append([float(point[i]) for i in np.arange(len(point))])
 
-    test = QMeans(points, 7)
-    # test.main()
+    test = QMeans(points, 22)
 
     print('0')
-    color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
-    for i in np.arange(7):
-        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
+    colors = plt.cm.rainbow(np.linspace(0, 1, 22))
+    for i in np.arange(22):
+        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=colors[i], s=30, marker='x')
         for point in test.clusters[i]:
-            plt.scatter(point[0], point[1], color=color[i], s=5)
+            plt.scatter(point[0], point[1], color=colors[i], s=5)
     plt.show()
 
     test.main()
 
-    color = ['red', 'green', 'orange', 'blue', 'purple', 'brown', 'olive']
-    for i in np.arange(7):
-        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=color[i], s=30, marker='x')
+    colors = plt.cm.rainbow(np.linspace(0, 1, 22))
+    for i in np.arange(22):
+        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=colors[i], s=30, marker='x')
         for point in test.clusters[i]:
-            plt.scatter(point[0], point[1], color=color[i], s=5)
+            plt.scatter(point[0], point[1], color=colors[i], s=5)
     plt.show()

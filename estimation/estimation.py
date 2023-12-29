@@ -3,7 +3,7 @@ import math as m
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    with open('dataset/xqf131.tsp', 'r') as file:
+    with open('../dataset/xqf131.tsp', 'r') as file:
         lines = file.readlines()
 
     point_dict = dict()
@@ -14,12 +14,12 @@ if __name__ == '__main__':
         point_dict[tmp_point[0]] = tuple(tmp_point[1:])
     print(point_dict)
 
-    path = [32, 33, 35, 34, 47, 49, 50, 51, 56, 57, 52, 36, 22, 37, 38, 39, 23, 11, 10, 24, 40, 41, 42, 44, 43, 60, 59,
-            61, 104, 111, 110, 117, 122, 103, 96, 97, 91, 90, 95, 92, 108, 113, 126, 125, 124, 121, 130, 123, 118, 114,
-            105, 112, 98, 100, 101, 102, 106, 99, 107, 131, 115, 109, 127, 119, 116, 120, 129, 128, 94, 93, 88, 87, 89,
-            69, 65, 62, 66, 79, 76, 71, 67, 63, 70, 58, 72, 73, 80, 84, 85, 86, 83, 82, 81, 78, 77, 75, 68, 64, 48, 55,
-            54, 46, 74, 53, 45, 26, 27, 19, 14, 15, 16, 17, 18, 25, 12, 13, 5, 1, 6, 7, 8, 2, 3, 4, 9, 21, 20, 29, 28,
-            30, 31]
+    path = [94, 92, 99, 93, 100, 98, 114, 118, 112, 123, 130, 121, 125, 126, 131, 127, 129, 120, 122, 117, 111, 103,
+            104, 110, 116, 128, 119, 115, 109, 106, 105, 101, 102, 107, 124, 113, 108, 87, 89, 88, 81, 82, 75, 77, 78,
+            68, 74, 54, 64, 65, 62, 69, 66, 70, 79, 76, 71, 67, 63, 50, 48, 47, 55, 49, 51, 57, 56, 52, 32, 31, 20, 30,
+            29, 46, 28, 12, 5, 13, 18, 19, 25, 17, 14, 15, 16, 26, 53, 45, 27, 6, 1, 7, 11, 4, 10, 9, 3, 2, 8, 21, 33,
+            34, 22, 35, 36, 37, 58, 38, 23, 39, 40, 41, 24, 42, 44, 43, 60, 61, 59, 73, 72, 80, 84, 83, 85, 86, 90, 91,
+            97, 96, 95]
     dist = 0.0
     print(len(path))
     for i in range(len(path)):
@@ -27,17 +27,14 @@ if __name__ == '__main__':
         cur_point = point_dict[path[i]]
         dist += round(m.sqrt(pow(last_point[0] - cur_point[0], 2) + pow(last_point[1] - cur_point[1], 2)))
     print(dist)
-    # 828
-    # 0.468
 
     x_values = [point_dict[path[i]][0] for i in range(len(path))]
     y_values = [point_dict[path[i]][1] for i in range(len(path))]
     plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
     plt.show()
 
-
 # if __name__ == '__main__':
-#     with open('dataset/xqf131.tsp', 'r') as file:
+#     with open('../dataset/pbn423.tsp', 'r') as file:
 #         lines = file.readlines()
 #
 #     point_dict = dict()
@@ -48,7 +45,7 @@ if __name__ == '__main__':
 #         point_dict[tmp_point[0]] = tuple(tmp_point[1:])
 #     print(point_dict)
 #
-#     with open('dataset/res_xqf131.tsp', 'r') as file:
+#     with open('res_pbn423.tsp', 'r') as file:
 #         lines = file.readlines()
 #
 #     path = []
@@ -61,4 +58,3 @@ if __name__ == '__main__':
 #         cur_point = point_dict[path[i]]
 #         dist += round(m.sqrt(pow(last_point[0] - cur_point[0], 2) + pow(last_point[1] - cur_point[1], 2)))
 #     print(dist)
-#     # 564
