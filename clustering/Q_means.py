@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
 from utils import display_result as disp, util
-from cluster import Clusters
+from cluster import SingleCluster
 import random
 
 
@@ -136,15 +136,15 @@ class QMeans:
             # self.boundary = set()
             if self.update_clusters():
                 break
-            print(_ + 1)
-            colors = plt.cm.rainbow(np.linspace(0, 1, 22))
-            for i in np.arange(22):
-                plt.scatter(self.centroids[i][0], self.centroids[i][1], color=colors[i], s=30, marker='x')
-                for point in self.clusters[i]:
-                    plt.scatter(point[0], point[1], color=colors[i], s=5)
-            plt.show()
+            # print(_ + 1)
+            # colors = plt.cm.rainbow(np.linspace(0, 1, 22))
+            # for i in np.arange(22):
+            #     plt.scatter(self.centroids[i][0], self.centroids[i][1], color=colors[i], s=30, marker='x')
+            #     for point in self.clusters[i]:
+            #         plt.scatter(point[0], point[1], color=colors[i], s=5)
+            # plt.show()
 
-        return Clusters(self.centroids, self.clusters)
+        return [SingleCluster(self.centroids[i], self.clusters[i]) for i in range(self.cluster_num)]
 
 
 if __name__ == '__main__':
