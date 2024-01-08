@@ -8,6 +8,20 @@ from clustering.Q_means import QMeans
 from cluster import SingleCluster, MultiCluster, cal_similarity
 
 
+def spectral_clustering(points, cluster_num):
+    k_neighbors = int(len(points) / cluster_num)
+    nn = NearestNeighbors(n_neighbors=k_neighbors)
+    nearest_neighbors_matrix = nn.fit(points).kneighbors_graph(mode='distance')
+
+    sc = SpectralClustering(n_clusters=cluster_num, affinity='precomputed')
+    y_pred = sc.fit_predict(nearest_neighbors_matrix)
+
+    clusters = [[] for _ in range(cluster_num)]
+    for i in range(len(y_pred)):
+        clusters[y_pred[i]].append(tuple(points[i]))
+    return clusters
+
+
 class TSPSolution:
     def __init__(self):
         self.points = []
@@ -62,22 +76,21 @@ class TSPSolution:
 
         # 第一次聚类，之后处理的最小粒度从数据点变成聚类中心点
         # 改成谱聚类
-        points = np.array(self.points)
-        k_neighbors = 5
-        nn = NearestNeighbors(n_neighbors=k_neighbors)
-        nearest_neighbors_matrix = nn.fit(points).kneighbors_graph(mode='distance')
-
         split_cluster_num = m.ceil(1.0 * len(self.points) / 6)
-        sc = SpectralClustering(n_clusters=split_cluster_num, affinity='precomputed')
-        y_pred = sc.fit_predict(nearest_neighbors_matrix)
-        self.path = [[] for _ in range(split_cluster_num)]
-        for i in range(len(y_pred)):
-            self.path[y_pred[i]].append(self.points[i])
-        for i in range(split_cluster_num):
-            # 计算聚类中心点
-            tmp_centroid = [1.0 * sum(point[0] for point in self.path[i]) / len(self.path[i]),
-                            1.0 * sum(point[1] for point in self.path[i]) / len(self.path[i])]
-            self.path[i] = SingleCluster(tmp_centroid, self.path[i])
+        self.path = spectral_clustering(np.array(self.points), split_cluster_num)
+        i = 0
+        while i < len(self.path):
+            if len(self.path[i]) > 6:
+                # 需要再次划分
+                split_cluster_num = m.ceil(1.0 * len(self.path[i]) / 6)
+                self.path[i: i + 1] = spectral_clustering(np.array(self.path[i]), split_cluster_num)
+            else:
+                # 计算聚类中心点
+                tmp_centroid = [1.0 * sum(point[0] for point in self.path[i]) / len(self.path[i]),
+                                1.0 * sum(point[1] for point in self.path[i]) / len(self.path[i])]
+                self.path[i] = SingleCluster(tmp_centroid, self.path[i])
+                i += 1
+        print(len(self.path))
 
         # split_cluster_num = m.ceil(1.0 * len(self.points) / 6)
         # self.path = QMeans(self.points, split_cluster_num).main()

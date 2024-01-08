@@ -43,8 +43,14 @@ class BaseCluster:
         self.class_type = class_type
 
     def determine_head_and_tail(self):
-        self.points[0], self.points[self.head] = self.points[self.head], self.points[0]
-        self.points[-1], self.points[self.tail] = self.points[self.tail], self.points[-1]
+        if self.point_num == 1:
+            return
+        tmp_points = [self.points[self.head], self.points[self.tail]]
+        for i in range(self.point_num - 1, -1, -1):
+            if i == self.head or i == self.tail:
+                continue
+            tmp_points.insert(1, self.points[i])
+        self.points = tmp_points
 
     def reorder(self, path):
         new_points = []
