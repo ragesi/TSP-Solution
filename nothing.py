@@ -67,8 +67,8 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
 def find_diff_clusters_connector(cluster_1, cluster_2):
     points_1 = cluster_1.get_nodes_in_path()
     points_2 = cluster_2.get_nodes_in_path()
-    conn_begin = 1 if (cluster_1.head == 0 and cluster_1.point_num > 1) else 0
-    conn_end = 1 if (cluster_2.tail == 0 and cluster_2.point_num > 1) else 0
+    conn_begin = 1 if (cluster_1.head == 0 and cluster_1.element_num > 1) else 0
+    conn_end = 1 if (cluster_2.tail == 0 and cluster_2.element_num > 1) else 0
     conn_min_dist = cal_similarity(points_1[conn_begin], points_2[conn_end])
 
     for i in range(len(points_1)):
@@ -143,6 +143,6 @@ for i in range(len(path)):
 
 # 还原到单个节点状态
 for i in range(len(path) - 1, -1, -1):
-    path[i: i + 1] = path[i].points
+    path[i: i + 1] = path[i].elements
 
 print(path)

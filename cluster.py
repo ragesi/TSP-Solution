@@ -1,3 +1,5 @@
+from scipy.spatial import ConvexHull, QhullError
+
 from TSP_path.optimal_path import OptimalPath
 import math as m
 
@@ -34,46 +36,46 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
 
 
 class BaseCluster:
-    def __init__(self, centroid, point_num, points, class_type):
-        self.head = -1
-        self.tail = -1
+    def __init__(self, centroid, element_num, elements, class_type):
+        self.head = None
+        self.tail = None
         self.centroid = centroid
-        self.points = points
-        self.point_num = point_num
+        self.elements = elements
+        self.element_num = element_num
         self.class_type = class_type
 
     def determine_head_and_tail(self):
-        if self.point_num == 1:
+        if self.element_num == 1:
             return
-        tmp_points = [self.points[self.head], self.points[self.tail]]
-        for i in range(self.point_num - 1, -1, -1):
-            if i == self.head or i == self.tail:
-                continue
-            tmp_points.insert(1, self.points[i])
-        self.points = tmp_points
+        tmp_elements = [self.head, self.tail]
+        for element in self.elements:
+            if element != self.head and element != self.tail:
+                tmp_elements.insert(-1, element)
+        self.elements = tmp_elements
 
     def reorder(self, path):
-        new_points = []
+        new_elements = []
         for i in range(len(path)):
-            new_points.append(self.points[path[i]])
-        self.points = new_points
+            new_elements.append(self.elements[path[i]])
+        self.elements = new_elements
 
     def path_to_circle(self):
-        self.point_num += 1
-        self.points.append(self.points[0])
+        self.element_num += 1
+        self.elements.append(self.elements[0])
 
     def circle_to_path(self):
-        self.point_num -= 1
-        self.points.pop()
+        self.element_num -= 1
+        self.elements.pop()
 
 
 class SingleCluster(BaseCluster):
     def __init__(self, centroid, points):
         super(SingleCluster, self).__init__(centroid, len(points), points, 'Single')
-        self.should_split = True
+        self.convex_hull = []
+        self.find_convex_hull()
 
     def get_nodes_in_path(self):
-        return self.points
+        return self.elements
 
     def find_optimal_circle(self, total_qubit_num):
         self.path_to_circle()
@@ -85,23 +87,41 @@ class SingleCluster(BaseCluster):
         # self.reorder(path)
 
         cur_path = [0]
-        opt_path = [0 for _ in range(self.point_num)]
+        opt_path = [0 for _ in range(self.element_num)]
         min_len = 100000
-        is_chosen = [False for _ in range(self.point_num)]
-        find_optimal_path(self.points, cur_path, 0, opt_path, min_len, is_chosen)
+        is_chosen = [False for _ in range(self.element_num)]
+        find_optimal_path(self.elements, cur_path, 0, opt_path, min_len, is_chosen)
         self.reorder(opt_path)
 
-    def can_be_split(self, sub_issue_max_size):
-        if self.point_num <= sub_issue_max_size:
-            self.should_split = False
+    def find_convex_hull(self):
+        try:
+            hull = ConvexHull(self.elements)
+            hull_vertices = hull.vertices
+            for vertex in hull_vertices:
+                self.convex_hull.append(self.elements[vertex])
+        except QhullError:
+            # 说明这个点集都沿着同一条直线排列
+            max_dist = -1
+            for i in range(self.element_num):
+                tmp_dist = cal_similarity(self.elements[i - 1], self.elements[i])
+                if tmp_dist > max_dist:
+                    max_dist = tmp_dist
+                    self.convex_hull = [self.elements[i - 1], self.elements[i]]
+
+    def get_convex_hull(self):
+        return [point for point in self.convex_hull if point != self.head and point != self.tail]
+
+    def get_point_num(self):
+        return self.element_num
 
 
 class MultiCluster(BaseCluster):
     def __init__(self, centroid, clusters):
         super(MultiCluster, self).__init__(centroid, len(clusters), clusters, 'Multi')
+        self.point_num = sum(cluster.get_point_num() for cluster in clusters)
 
     def get_nodes_in_path(self):
-        return [cluster.centroid for cluster in self.points]
+        return [cluster.centroid for cluster in self.elements]
 
     def find_optimal_circle(self, total_qubit_num):
         self.path_to_circle()
@@ -110,12 +130,22 @@ class MultiCluster(BaseCluster):
 
     def find_optimal_path(self, total_qubit_num):
         cur_path = [0]
-        opt_path = [0 for _ in range(self.point_num)]
+        opt_path = [0 for _ in range(self.element_num)]
         min_len = 100000
-        is_chosen = [False for _ in range(self.point_num)]
+        is_chosen = [False for _ in range(self.element_num)]
         find_optimal_path(self.get_nodes_in_path(), cur_path, 0, opt_path, min_len, is_chosen)
         self.reorder(opt_path)
 
+    def get_point_num(self):
+        return self.point_num
+
+    def cal_centroid(self):
+        if self.centroid is None:
+            self.centroid = [0 for _ in range(2)]
+        for cluster in self.elements:
+            self.centroid[0] += cluster.centroid[0] * cluster.get_point_num()
+            self.centroid[1] += cluster.centroid[1] * cluster.get_point_num()
+        self.centroid = [self.centroid[0] / self.point_num, self.centroid[1] / self.point_num]
 
 # class Clusters(BaseCluster):
 #     def __init__(self, centroids, points):

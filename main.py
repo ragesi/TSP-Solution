@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import SpectralClustering
 from sklearn.neighbors import NearestNeighbors
+from scipy.spatial import ConvexHull, QhullError
 
 from clustering.Q_means import QMeans
 from cluster import SingleCluster, MultiCluster, cal_similarity
@@ -22,48 +23,75 @@ def spectral_clustering(points, cluster_num):
     return clusters
 
 
+def cal_dist_point_to_line(point, line_start, line_end):
+    vec_of_point = point - line_start
+    vec_of_line = line_end - line_start
+
+    dist_vec_of_point = np.linalg.norm(vec_of_point)
+    dist_vec_of_line = np.linalg.norm(vec_of_line)
+
+    # 计算点到直线的垂线距离
+    return abs(
+        dist_vec_of_point * np.sin(np.arccos(np.dot(vec_of_point, vec_of_line) / dist_vec_of_line / dist_vec_of_point)))
+
+
+# def determine_convex_hull_shape(points):
+#     # 计算凸包
+#
+
+
 class TSPSolution:
     def __init__(self):
         self.points = []
+        self.point_num = 0
         self.point_map = dict()
         self.path = []
 
         self.sub_issue_max_size = 6
         self.max_qubit_num = 27
 
+        self.x_bounds = [10000, 0]
+        self.y_bounds = [10000, 0]
+
     def get_data(self, file_path):
         with open(file_path, 'r') as file:
             lines = file.readlines()
 
-        lines = lines[8: -1]
+        lines = lines[7: -1]
         for line in lines:
             tmp_point = line.strip().split(' ')
-            tmp_point = [int(x) for x in tmp_point]
+            tmp_point = [float(x) for x in tmp_point]
+            tmp_point[0] = int(tmp_point[0])
             tmp_tuple = (tmp_point[1], tmp_point[2])
             self.points.append(tmp_tuple)
             self.point_map[tmp_tuple] = tmp_point[0]
+            # 确定x和y的边界
+            if tmp_point[1] < self.x_bounds[0]:
+                self.x_bounds[0] = tmp_point[1]
+            if tmp_point[1] > self.x_bounds[1]:
+                self.x_bounds[1] = tmp_point[1]
+            if tmp_point[2] < self.y_bounds[0]:
+                self.y_bounds[0] = tmp_point[2]
+            if tmp_point[2] > self.y_bounds[1]:
+                self.y_bounds[1] = tmp_point[2]
+        print(f"x_bound: {self.x_bounds}, y_bound: {self.y_bounds}")
+        self.point_num = len(self.points)
 
     @staticmethod
     def find_diff_clusters_connector(cluster_1, cluster_2):
-        points_1 = cluster_1.get_nodes_in_path()
-        points_2 = cluster_2.get_nodes_in_path()
-        conn_begin = 1 if (cluster_1.head == 0 and cluster_1.point_num > 1) else 0
-        conn_end = 1 if (cluster_2.tail == 0 and cluster_2.point_num > 1) else 0
-        conn_min_dist = cal_similarity(points_1[conn_begin], points_2[conn_end])
-
+        points_1 = cluster_1.get_convex_hull()
+        points_2 = cluster_2.get_convex_hull()
+        conn_min_dist = 10000
+        conn_begin = 0
+        conn_end = 0
         for i in range(len(points_1)):
-            if i == cluster_1.head:
-                continue
             for j in range(len(points_2)):
-                if j == cluster_2.tail:
-                    continue
                 cur_dist = cal_similarity(points_1[i], points_2[j])
                 if cur_dist < conn_min_dist:
                     conn_min_dist = cur_dist
                     conn_begin = i
                     conn_end = j
-
-        return conn_begin, conn_end
+        return points_1[conn_begin], points_2[conn_end]
 
     def divide_sub_issue(self):
         if len(self.points) < self.sub_issue_max_size:
@@ -73,6 +101,23 @@ class TSPSolution:
             for point in cur_order:
                 self.path.append(self.point_map.get(point))
             return
+
+        # 绘制
+        for i in range(self.point_num):
+            plt.scatter(self.points[i][0], self.points[i][1], color='b', s=10)
+        plt.show()
+
+        # 删除掉离群点
+        # outliers = []
+        # nn = NearestNeighbors(n_neighbors=4)
+        # nearest_neighbors_matrix = nn.fit(self.points).kneighbors_graph(mode='distance')
+        # outlier_threshold = nearest_neighbors_matrix.sum() / self.point_num / 4.0 * 2.0
+        # print(outlier_threshold)
+        # for i in range(self.point_num - 1, -1, -1):
+        #     cur_dist = nearest_neighbors_matrix[i].sum() / 4.0
+        #     if cur_dist > outlier_threshold:
+        #         outliers.append(self.points.pop(i))
+        # print(f"len(self.points):{len(self.points)}")
 
         # 第一次聚类，之后处理的最小粒度从数据点变成聚类中心点
         # 改成谱聚类
@@ -92,9 +137,18 @@ class TSPSolution:
                 i += 1
         print(len(self.path))
 
+        # k-means聚类
         # split_cluster_num = m.ceil(1.0 * len(self.points) / 6)
         # self.path = QMeans(self.points, split_cluster_num).main()
-        # print(self.path)
+        # i = 0
+        # while i < len(self.path):
+        #     if self.path[i].point_num > 6:
+        #         # 需要再次划分
+        #         split_cluster_num = m.ceil(1.0 * self.path[i].point_num / 6)
+        #         self.path[i: i + 1] = QMeans(self.path[i].get_nodes_in_path(), split_cluster_num).main()
+        #     else:
+        #         i += 1
+        # print(len(self.path))
 
         # 绘制
         cluster_num = len(self.path)
@@ -102,7 +156,7 @@ class TSPSolution:
         for i in range(cluster_num):
             cur_cluster = self.path[i]
             plt.scatter(cur_cluster.centroid[0], cur_cluster.centroid[1], color=colors[i], s=30, marker='x')
-            for point in cur_cluster.points:
+            for point in cur_cluster.elements:
                 plt.scatter(point[0], point[1], color=colors[i], s=5)
         plt.show()
 
@@ -129,18 +183,28 @@ class TSPSolution:
                 for j in range(i + 1, len(self.path)):
                     if neighbors[i] == j and neighbors[j] == i:
                         is_terminal = False
-                        tmp_centroid = [1.0 * (self.path[i].centroid[0] + self.path[j].centroid[0]) / 2,
-                                        1.0 * (self.path[i].centroid[1] + self.path[j].centroid[1]) / 2]
-                        self.path[i] = MultiCluster(tmp_centroid, [self.path[i], self.path[j]])
+                        self.path[i] = MultiCluster(None, [self.path[i], self.path[j]])
+                        self.path[i].cal_centroid()
                         delete_index.append(j)
             delete_index.sort(reverse=True)
             for i in range(len(delete_index)):
                 self.path.pop(delete_index[i])
 
+            # 绘制
+            # cluster_num = len(self.path)
+            # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
+            # for i in np.arange(cluster_num):
+            #     cur_multi_cluster = self.path[i]
+            #     plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i], s=5)
+            # # x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
+            # # y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
+            # # plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
+            # plt.show()
+
         # 寻找最短回路
         self.path = [MultiCluster(None, self.path)]
         self.path[0].find_optimal_circle(27)
-        self.path = self.path[0].points
+        self.path = self.path[0].elements
 
         # 绘制
         cluster_num = len(self.path)
@@ -162,10 +226,10 @@ class TSPSolution:
                     # 是multi-cluster
                     is_terminal = False
                     # 将此multi-cluster解构
-                    tmp_multi_cluster = MultiCluster(None, [self.path[i - 1], *self.path[i].points,
+                    tmp_multi_cluster = MultiCluster(None, [self.path[i - 1], *self.path[i].elements,
                                                             self.path[(i + 1) % len(self.path)]])
                     tmp_multi_cluster.find_optimal_path(self.max_qubit_num)
-                    self.path[i: i + 1] = tmp_multi_cluster.points[1: -1]
+                    self.path[i: i + 1] = tmp_multi_cluster.elements[1: -1]
 
         # 绘制
         cluster_num = len(self.path)
@@ -194,140 +258,27 @@ class TSPSolution:
 
         # 还原到单个节点状态
         for i in range(len(self.path) - 1, -1, -1):
-            self.path[i: i + 1] = self.path[i].points
+            self.path[i: i + 1] = self.path[i].elements
+
+        # 将离群点加入到最终结果中
+        # for i in range(len(outliers)):
+        #     min_dist = 10000
+        #     target_index = -1
+        #     for j in range(len(self.path)):
+        #         tmp_dist = cal_similarity(self.path[j - 1], outliers[i]) + cal_similarity(outliers[i], self.path[
+        #             j]) - cal_similarity(self.path[j - 1], self.path[j])
+        #         if tmp_dist < min_dist:
+        #             target_index = j
+        #             min_dist = tmp_dist
+        #     self.path.insert(target_index, outliers[i])
+
+        # 将节点映射成索引
         for i in range(len(self.path)):
             self.path[i] = self.point_map[self.path[i]]
 
-        # 下面是错误的，不能再次聚类了
-        # 再次聚类，将single cluster 聚类成multi-cluster
-        # tmp_points = [cluster.centroid for cluster in self.path]
-        # split_cluster_num = m.ceil(1.0 * len(tmp_points) / 6)
-        # split_cluster = QMeans(tmp_points, split_cluster_num).main()
-        # for cluster in split_cluster:
-        #     tmp_clusters = []
-        #     for point in cluster.points:
-        #         for i in range(len(self.path)):
-        #             if point[0] == self.path[i].centroid[0] and point[1] == self.path[i].centroid[1]:
-        #                 tmp_clusters.append(self.path[i])
-        #     self.path.append(MultiCluster(cluster.centroid, tmp_clusters))
-        # self.path = self.path[-split_cluster_num:]
-        #
-        # # 聚类聚到只有一个类为止
-        # self.path = [MultiCluster(None, self.path)]
-        #
-        # # 开始计算最短回路
-        # self.path[0].find_optimal_circle(27)
-        # self.path = self.path[0].points
-        #
-        # # 绘制
-        # cluster_num = len(self.path)
-        # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-        # for i in np.arange(cluster_num):
-        #     cur_multi_cluster = self.path[i]
-        #     plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i],
-        #                 s=30, marker='x')
-        #     for cluster in cur_multi_cluster.points:
-        #         plt.scatter(cluster.centroid[0], cluster.centroid[1], color=colors[i], s=5)
-        # x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
-        # y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
-        # plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-        # plt.show()
-        #
-        # # 找到每个multi-cluster中的起点cluster和终点cluster
-        # for i in range(len(self.path)):
-        #     self.path[i - 1].tail, self.path[i].head = TSPSolution.find_diff_clusters_connector(self.path[i - 1],
-        #                                                                                         self.path[i])
-        # for i in range(len(self.path)):
-        #     self.path[i].determine_head_and_tail()
-        # for i in range(len(self.path)):
-        #     self.path[i].find_optimal_path(27)
-        #
-        # # 最终解构成single cluster的状态
-        # tmp_path = []
-        # for i in range(len(self.path)):
-        #     tmp_path += self.path[i].points
-        # self.path = tmp_path
-
-        # 寻找最底层的每个聚类的最短路径
-        # 找到每个聚类里的起点和终点
-        # for i in range(len(self.path)):
-        #     self.path[i - 1].tail, self.path[i].head = TSPSolution.find_diff_clusters_connector(self.path[i - 1],
-        #                                                                                         self.path[i])
-        # for i in range(len(self.path)):
-        #     self.path[i].determine_head_and_tail()
-        # for i in range(len(self.path)):
-        #     self.path[i].find_optimal_path(27)
-        #
-        # # 解构成最底层的回路
-        # tmp_path = []
-        # for i in range(len(self.path)):
-        #     tmp_path += self.path[i].points
-        # self.path = tmp_path
-
-        # split_cluster_num = min(m.ceil(1.0 * len(self.points) / self.sub_issue_max_size), self.sub_issue_max_size - 1)
-        # split_cluster = QMeans(self.points, split_cluster_num).main()
-        # split_cluster.find_optimal_circle(self.max_qubit_num)
-        # self.path += split_cluster.points
-        # for i in range(len(self.path)):
-        #     self.path[i].can_be_split(self.sub_issue_max_size)
-        #     print(self.path[i].points)
-        # is_finish = False
-        # while not is_finish:
-        #     is_finish = True
-        #     # divide current layer clusters to smaller clusters
-        #     for i in range(len(self.path)):
-        #         if not self.path[i].should_split:
-        #             continue
-        #
-        #         is_finish = False
-        #         split_cluster_num = min(m.ceil(1.0 * len(self.path[i].points) / self.sub_issue_max_size),
-        #                                 self.sub_issue_max_size)
-        #         split_clusters = QMeans(self.path[i].points, split_cluster_num).main()
-        #         self.path[i] = split_clusters
-        #
-        #     # after division, get every cluster's begin and end of centroids
-        #     for i in range(len(self.path)):
-        #         # get the source and target of every cluster
-        #         self.path[i - 1].tail, self.path[i].head = TSPSolution.find_diff_clusters_connector(self.path[i - 1],
-        #                                                                                             self.path[i])
-        #         if i > 0:
-        #             self.path[i - 1].determine_head_and_tail()
-        #     self.path[len(self.path) - 1].determine_head_and_tail()
-        #
-        #     # calculate every cluster's order of centroids
-        #     for i in range(len(self.path) - 1, -1, -1):
-        #         if self.path[i].class_type == 0:
-        #             continue
-        #
-        #         cur_clusters = self.path.pop(i)
-        #         cur_clusters.find_optimal_path(self.max_qubit_num)
-        #         self.path[i: i] = cur_clusters.points
-        #         for j in range(cur_clusters.point_num):
-        #             self.path[i + j].can_be_split(self.sub_issue_max_size)
-
-        # cluster_num = len(self.path)
-        # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-        # for i in np.arange(cluster_num):
-        #     cur_multi_cluster = self.path[i]
-        #     plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i],
-        #                 s=30, marker='x')
-        #     for point in cur_multi_cluster.points:
-        #         plt.scatter(point[0], point[1], color=colors[i], s=5)
-        # x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
-        # y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
-        # plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-        # plt.show()
-
-        # when all clusters are divided to minimum, find optimal paths for all clusters respectively
-        # for i in range(len(self.path) - 1, -1, -1):
-        #     cur_clusters = self.path.pop(i)
-        #     cur_clusters.find_optimal_path(self.max_qubit_num)
-        #     for j in range(cur_clusters.point_num):
-        #         self.path.insert(i + j, self.point_map[cur_clusters.points[j]])
-
 
 if __name__ == '__main__':
-    file_path = 'dataset/xqf131.tsp'
+    file_path = 'dataset/wi29.tsp'
 test = TSPSolution()
 test.get_data(file_path)
 test.divide_sub_issue()
