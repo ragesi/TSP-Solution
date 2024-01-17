@@ -57,7 +57,7 @@ class TSPSolution:
         with open(file_path, 'r') as file:
             lines = file.readlines()
 
-        lines = lines[7: -1]
+        lines = lines[8: -1]
         for line in lines:
             tmp_point = line.strip().split(' ')
             tmp_point = [float(x) for x in tmp_point]
@@ -103,9 +103,9 @@ class TSPSolution:
             return
 
         # 绘制
-        for i in range(self.point_num):
-            plt.scatter(self.points[i][0], self.points[i][1], color='b', s=10)
-        plt.show()
+        # for i in range(self.point_num):
+        #     plt.scatter(self.points[i][0], self.points[i][1], color='b', s=10)
+        # plt.show()
 
         # 删除掉离群点
         # outliers = []
@@ -278,7 +278,7 @@ class TSPSolution:
 
 
 if __name__ == '__main__':
-    file_path = 'dataset/wi29.tsp'
+    file_path = 'dataset/xqg237.tsp'
 test = TSPSolution()
 test.get_data(file_path)
 test.divide_sub_issue()
