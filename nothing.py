@@ -2,6 +2,7 @@
 
 import math as m
 from cluster import SingleCluster
+import matplotlib.pyplot as plt
 
 
 def cal_similarity(point1, point2):
@@ -55,13 +56,27 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
 #           # [45, 60],
 #           # [59, 39],
 #           # [97, 23]]
-# cur_path = [0]
-# optimal_path = [0 for _ in range(len(points))]
-# threshold = 100000
-# is_chosen = [False for _ in range(len(points))]
-# threshold = find_optimal_path(points, cur_path, 0, optimal_path, threshold, is_chosen)
-# print(optimal_path)
-# print(threshold)
+
+point_test_for_5 = [[22, 23],
+                    [21, 4],
+                    [13, 13],
+                    [16, 6],
+                    [13, 23],
+                    [22, 23]]
+
+cur_path = [0]
+optimal_path = [0 for _ in range(len(point_test_for_5))]
+threshold = 100000
+is_chosen = [False for _ in range(len(point_test_for_5))]
+threshold = find_optimal_path(point_test_for_5, cur_path, 0, optimal_path, threshold, is_chosen)
+
+x_values = [point_test_for_5[optimal_path[i]][0] for i in range(len(optimal_path))]
+y_values = [point_test_for_5[optimal_path[i]][1] for i in range(len(optimal_path))]
+plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
+plt.show()
+
+print(optimal_path)
+print(threshold)
 
 
 def find_diff_clusters_connector(cluster_1, cluster_2):
@@ -130,19 +145,19 @@ points = [[(0, 26), (0, 27), (0, 39), (5, 25), (5, 31), (5, 37), (5, 43)],
           [(28, 34), (28, 40), (28, 43), (28, 47), (34, 38), (34, 41)],
           [(15, 43), (18, 39), (18, 41), (18, 42), (18, 44), (18, 45)],
           [(15, 31), (15, 37), (18, 31), (18, 33), (18, 35), (18, 37)]]
-path = []
-for i in range(len(centroids)):
-    path.append(SingleCluster(centroids[i], points[i]))
-for i in range(len(path)):
-    path[i - 1].tail, path[i].head = find_diff_clusters_connector(path[i - 1], path[i])
-    if i > 0:
-        path[i - 1].determine_head_and_tail()
-path[len(path) - 1].determine_head_and_tail()
-for i in range(len(path)):
-    path[i].find_optimal_path(27)
-
-# 还原到单个节点状态
-for i in range(len(path) - 1, -1, -1):
-    path[i: i + 1] = path[i].elements
-
-print(path)
+# path = []
+# for i in range(len(centroids)):
+#     path.append(SingleCluster(centroids[i], points[i]))
+# for i in range(len(path)):
+#     path[i - 1].tail, path[i].head = find_diff_clusters_connector(path[i - 1], path[i])
+#     if i > 0:
+#         path[i - 1].determine_head_and_tail()
+# path[len(path) - 1].determine_head_and_tail()
+# for i in range(len(path)):
+#     path[i].find_optimal_path(27)
+#
+# # 还原到单个节点状态
+# for i in range(len(path) - 1, -1, -1):
+#     path[i: i + 1] = path[i].elements
+#
+# print(path)

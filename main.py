@@ -142,9 +142,9 @@ class TSPSolution:
         # self.path = QMeans(self.points, split_cluster_num).main()
         # i = 0
         # while i < len(self.path):
-        #     if self.path[i].point_num > 6:
+        #     if self.path[i].get_point_num() > 6:
         #         # 需要再次划分
-        #         split_cluster_num = m.ceil(1.0 * self.path[i].point_num / 6)
+        #         split_cluster_num = m.ceil(1.0 * self.path[i].get_point_num() / 6)
         #         self.path[i: i + 1] = QMeans(self.path[i].get_nodes_in_path(), split_cluster_num).main()
         #     else:
         #         i += 1
@@ -278,8 +278,8 @@ class TSPSolution:
 
 
 if __name__ == '__main__':
-    file_path = 'dataset/xqg237.tsp'
-test = TSPSolution()
-test.get_data(file_path)
-test.divide_sub_issue()
-print(test.path)
+    file_path = 'dataset/pbn423.tsp'
+    test = TSPSolution()
+    test.get_data(file_path)
+    test.divide_sub_issue()
+    print(test.path)
