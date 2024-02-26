@@ -52,7 +52,7 @@ class OptimalPath:
         self.end_dists = np.zeros(2 ** self.choice_bit_num)
 
         # run on the IBM Quantum Platform
-        self.session = None
+        # self.session = None
         self.sampler = None
         self.job = None
 
@@ -137,13 +137,11 @@ class OptimalPath:
         self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
 
         # get connection to IBM Quantum Platform
-        # options = Options()
-        # options.optimization_level = 0
-        # options.resilience_level = 1
         # service = QiskitRuntimeService()
-        # backend = 'ibmq_qasm_simulator'
+        backend = 'ibmq_qasm_simulator'
         # # backend = 'ibm_kyoto'
-        # # backend = 'ibm_brisbane'
+        # backend = 'ibm_brisbane'
+        self.sampler = Sampler(backend=backend)
         # self.session = Session(service=service, backend=backend)
         # self.sampler = Sampler(session=self.session, options=options)
 
@@ -369,12 +367,12 @@ class OptimalPath:
         # print(qc_end)
 
         if self.job is not None:
-            # output = self.job.result().quasi_dists[0]
-            output = self.job.result().get_counts()
+            output = self.job.result().quasi_dists[0]
+            # output = self.job.result().get_counts()
             output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-            # output = util.int_to_binary(output[0][0], self.qram_num)
-            # new_path = self.translate_route(output)
-            new_path = self.translate_route(output[0][0])
+            output = util.int_to_binary(output[0][0], self.qram_num)
+            new_path = self.translate_route(output)
+            # new_path = self.translate_route(output[0][0])
             new_threshold = self.cal_single_route_dist(new_path)
             print("new_path: ", new_path)
 
@@ -384,7 +382,8 @@ class OptimalPath:
                 # self.grover_iter_min_num = min(self.grover_iter_min_num * 1.4, max_iter_bound)
                 self.grover_iter_min_num = 1.0 / 2 * (self.grover_iter_max_num + self.grover_iter_min_num)
                 # self.grover_iter_max_num = max(self.grover_iter_min_num, self.grover_iter_max_num)
-                self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
+                # self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
+                self.grover_repeat_num = round(m.log(m.sqrt(2 ** self.qram_num) / self.grover_iter_max_num, self.alpha))
                 print("new_threshold: ", new_threshold)
             else:
                 self.grover_repeat_num -= 1
@@ -406,9 +405,9 @@ class OptimalPath:
 
         # print("depth: ", qc.depth())
         qc.measure(qram, cl)
-        backend = Aer.backends(name='qasm_simulator')[0]
-        self.job = execute(qc, backend, shots=1000)
-        # self.job = self.sampler.run(circuits=qc, shots=1000)
+        # backend = Aer.backends(name='qasm_simulator')[0]
+        # self.job = execute(qc, backend, shots=1000)
+        self.job = self.sampler.run(circuits=qc, shots=1000)
         # print(self.session.details())
         self.async_grover()
 
@@ -431,8 +430,8 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.point_test_for_7
-    test = OptimalPath(7, test_points, 29)
+    test_points = test.cycle_test_for_4
+    test = OptimalPath(5, test_points, 29)
     # print(test.dist_adj)
     # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
