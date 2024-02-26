@@ -53,7 +53,7 @@ class OptimalPath:
 
         # run on the IBM Quantum Platform
         # self.session = None
-        self.sampler = None
+        # self.sampler = None
         self.job = None
 
         # initialize all parameters for Grover algorithm
@@ -138,10 +138,10 @@ class OptimalPath:
 
         # get connection to IBM Quantum Platform
         # service = QiskitRuntimeService()
-        backend = 'ibmq_qasm_simulator'
+        # backend = 'ibmq_qasm_simulator'
         # # backend = 'ibm_kyoto'
         # backend = 'ibm_brisbane'
-        self.sampler = Sampler(backend=backend)
+        # self.sampler = Sampler(backend=backend)
         # self.session = Session(service=service, backend=backend)
         # self.sampler = Sampler(session=self.session, options=options)
 
@@ -407,7 +407,9 @@ class OptimalPath:
         qc.measure(qram, cl)
         # backend = Aer.backends(name='qasm_simulator')[0]
         # self.job = execute(qc, backend, shots=1000)
-        self.job = self.sampler.run(circuits=qc, shots=1000)
+        backend = 'ibm_brisbane'
+        sampler = Sampler(backend=backend)
+        self.job = sampler.run(circuits=qc, shots=1000)
         # print(self.session.details())
         self.async_grover()
 
