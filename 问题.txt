@@ -44,6 +44,11 @@ ragesi.W@proton.me
 ragesi.Wang@proton.me
 ragesi.Z@proton.me
 
+重复测量次数：1000或更多
+上述条件下第几次测试
+该测试中的第几次迭代：所有小于等于0的迭代代表它们所在的测试并没有完结，且它们的编号从0开始，下一次迭代在本次迭代的编号基础上再减1
+测试时间：以秒为单位
+
 4_nodes success: 1, time:183.46541714668274, 21+21, total iterate times: 2
 
 63 qubits : 12 nodes cycle, 13 nodes path

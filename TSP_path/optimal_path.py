@@ -5,6 +5,7 @@ import time
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Aer, execute
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 import qiskit.circuit.library as lib
+from qiskit.compiler.transpiler import transpile
 
 import numpy as np
 import math as m
@@ -407,9 +408,14 @@ class OptimalPath:
         qc.measure(qram, cl)
         # backend = Aer.backends(name='qasm_simulator')[0]
         # self.job = execute(qc, backend, shots=1000)
-        backend = 'ibm_brisbane'
+        service = QiskitRuntimeService()
+        backend = service.backend('ibm_brisbane')
+        # backend = service.backend('ibm_osaka')
+        basis_gates = ['ECR', 'ID', 'RZ', 'SX', 'X']
+        qc = transpile(qc, backend=backend, optimization_level=2)
+        print('transpile successfully!')
         sampler = Sampler(backend=backend)
-        self.job = sampler.run(circuits=qc, shots=1000)
+        self.job = sampler.run(circuits=qc, shots=2000)
         # print(self.session.details())
         self.async_grover()
 
@@ -432,8 +438,8 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.cycle_test_for_4
-    test = OptimalPath(5, test_points, 29)
+    test_points = test.cycle_test_for_5
+    test = OptimalPath(6, test_points, 29)
     # print(test.dist_adj)
     # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
