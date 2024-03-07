@@ -411,13 +411,17 @@ class OptimalPath:
         service = QiskitRuntimeService()
         backend = service.backend('ibm_brisbane')
         # backend = service.backend('ibm_osaka')
+        # backend = service.backend('ibm_kyoto')
         basis_gates = ['ECR', 'ID', 'RZ', 'SX', 'X']
-        qc = transpile(qc, backend=backend, optimization_level=2)
+        print('starting transpile!')
+        # qc = transpile(qc, backend=backend, optimization_level=2)
+        qc = transpile(qc, backend=backend)
         print('transpile successfully!')
-        sampler = Sampler(backend=backend)
-        self.job = sampler.run(circuits=qc, shots=2000)
-        # print(self.session.details())
-        self.async_grover()
+        qc.qasm().write("my_circuit.qasm")
+        # sampler = Sampler(backend=backend)
+        # self.job = sampler.run(circuits=qc, shots=1000)
+        # # print(self.session.details())
+        # self.async_grover()
 
     def main(self):
         if self.point_num < 4:
@@ -438,8 +442,8 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.cycle_test_for_5
-    test = OptimalPath(6, test_points, 29)
+    test_points = test.cycle_test_for_3
+    test = OptimalPath(4, test_points, 29)
     # print(test.dist_adj)
     # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
