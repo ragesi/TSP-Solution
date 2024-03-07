@@ -6,6 +6,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Aer, exec
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 import qiskit.circuit.library as lib
 from qiskit.compiler.transpiler import transpile
+import qiskit.qasm2
 
 import numpy as np
 import math as m
@@ -408,16 +409,16 @@ class OptimalPath:
         qc.measure(qram, cl)
         # backend = Aer.backends(name='qasm_simulator')[0]
         # self.job = execute(qc, backend, shots=1000)
-        service = QiskitRuntimeService()
-        backend = service.backend('ibm_brisbane')
+        # service = QiskitRuntimeService()
+        # backend = service.backend('ibm_brisbane')
         # backend = service.backend('ibm_osaka')
         # backend = service.backend('ibm_kyoto')
-        basis_gates = ['ECR', 'ID', 'RZ', 'SX', 'X']
+        basis_gates = ['ECR', 'ID', 'RZ', 'SX', 'X', 'RZX']
         print('starting transpile!')
         # qc = transpile(qc, backend=backend, optimization_level=2)
-        qc = transpile(qc, backend=backend)
+        qc = transpile(qc, basis_gates=basis_gates)
         print('transpile successfully!')
-        qc.qasm().write("my_circuit.qasm")
+        qiskit.qasm2.dump(qc, "my_circuit1.qasm")
         # sampler = Sampler(backend=backend)
         # self.job = sampler.run(circuits=qc, shots=1000)
         # # print(self.session.details())
