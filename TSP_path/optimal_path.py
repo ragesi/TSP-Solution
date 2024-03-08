@@ -413,7 +413,7 @@ class OptimalPath:
         # backend = service.backend('ibm_brisbane')
         # backend = service.backend('ibm_osaka')
         # backend = service.backend('ibm_kyoto')
-        basis_gates = ['ECR', 'ID', 'RZ', 'SX', 'X', 'RZX']
+        basis_gates = ['ID', 'RZ', 'SX', 'X', 'H', 'CX']
         print('starting transpile!')
         # qc = transpile(qc, backend=backend, optimization_level=2)
         qc = transpile(qc, basis_gates=basis_gates)
