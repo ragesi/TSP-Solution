@@ -13,9 +13,9 @@ S_simulator = Aer.backends(name='statevector_simulator')[0]
 M_simulator = Aer.backends(name='qasm_simulator')[0]
 
 
-#==================================================
-#----------- Displaying Results -----------
-#==================================================
+# ==================================================
+# ----------- Displaying Results -----------
+# ==================================================
 
 def Wavefunction(obj, **kwargs):
     '''
@@ -155,7 +155,7 @@ def Measurement(quantumcircuit, **kwargs):
         return M2
 
 
-def Most_Probable(M,N):
+def Most_Probable(M, N):
     '''
      Input: M (Dictionary) N (integer)
      Returns the N most probable states accoding to the measurement counts stored in M
@@ -180,9 +180,9 @@ def Most_Probable(M,N):
     return count, state
 
 
-#===============================================
-#----------- Math Operations -----------
-#===============================================
+# ===============================================
+# ----------- Math Operations -----------
+# ===============================================
 
 
 def Oplus(bit1, bit2):
@@ -204,10 +204,10 @@ def Binary(N, total, LSB):
     qubits = int(m.log(total, 2))
     b_num = np.zeros(qubits)
     for i in np.arange(qubits):
-        if( N / ((2) ** (qubits - i - 1)) >= 1 ):
-            if(LSB == "R"):
+        if (N / ((2) ** (qubits - i - 1)) >= 1):
+            if (LSB == "R"):
                 b_num[i] = 1
-            if(LSB == "L"):
+            if (LSB == "L"):
                 b_num[int(qubits - (i + 1))] = 1
             N = N - 2 ** (qubits - i - 1)
     B = []
@@ -223,9 +223,9 @@ def From_Binary(S, LSB):
     """
     num = 0
     for i in np.arange(len(S)):
-        if(LSB == "R"):
+        if (LSB == "R"):
             num = num + int(S[int(0 - (i + 1))]) * 2 ** (i)
-        if(LSB == "L"):
+        if (LSB == "L"):
             num = num + int(S[int(i)]) * 2 ** (i)
     return num
 
@@ -240,9 +240,9 @@ def B2D(in_bi):
     return dec
 
 
-#=================================================
-#----------- Custom Operations -----------
-#=================================================
+# =================================================
+# ----------- Custom Operations -----------
+# =================================================
 
 
 def x_Transformation(qc, qreg, state):
@@ -395,9 +395,9 @@ def Grover(Q, marked):
     return qc, q, an1, an2, c
 
 
-#==============================================
-#-----------------  QFT -----------------------
-#==============================================
+# ==============================================
+# -----------------  QFT -----------------------
+# ==============================================
 
 
 def QFT(qc, q, qubits, **kwargs):
@@ -477,9 +477,9 @@ def Quantum_Adder(qc, Qa, Qb, A, B):
     """
     Q = len(B)
     for n in np.arange(Q):
-        if(A[n] == 1):
+        if (A[n] == 1):
             qc.x(Qa[int(n + 1)])
-        if(B[n] == 1):
+        if (B[n] == 1):
             qc.x(Qb[int(n)])
     QFT(qc, Qa, Q + 1)
     p = 1
@@ -489,14 +489,14 @@ def Quantum_Adder(qc, Qa, Qb, A, B):
     for i in np.arange(1, Q + 1):
         p = 0
         for jj in np.arange(i - 1, Q):
-            qc.cp(m.pi / (2 ** p), Qb[int(jj)], Qa[int(i)]) 
+            qc.cp(m.pi / (2 ** p), Qb[int(jj)], Qa[int(i)])
             p = p + 1
     QFT_dgr(qc, Qa, Q + 1)
-    
-    
-#==============================================
-#-----------------  QPE -----------------------
-#==============================================
+
+
+# ==============================================
+# -----------------  QPE -----------------------
+# ==============================================
 
 
 def QPE_phi(MP):
@@ -519,7 +519,7 @@ def QPE_phi(MP):
         if (abs(prob - MP[0][0]) < abs(PHI[0] - MP[0][0])):
             PHI[0] = prob
             PHI[1] = phi
-    if( (MS1 < MS2) and ( (MS1 != 0) and (MS2 != (2 ** n - 1)) ) ):
+    if ((MS1 < MS2) and ((MS1 != 0) and (MS2 != (2 ** n - 1)))):
         theta = (MS1 + PHI[1]) / (2 ** n)
     elif ((MS1 > MS2) and (MS1 != 0)):
         theta = (MS1 - PHI[1]) / (2 ** n)
@@ -528,9 +528,9 @@ def QPE_phi(MP):
     return PHI[1], theta
 
 
-#==============================================
-#---------------  Q-Means ---------------------
-#==============================================
+# ==============================================
+# ---------------  Q-Means ---------------------
+# ==============================================
 
 
 def k_Data(k, n):
@@ -540,16 +540,17 @@ def k_Data(k, n):
     """
     Centers = []
     for i in np.arange(k):
-        Centers.append( [1.5 + np.random.rand() * 5, 1.5 * random.random() * 5] )
+        Centers.append([1.5 + np.random.rand() * 5, 1.5 * random.random() * 5])
     count = round((0.7 * n) / k)
     Data = []
     for j in np.arange(len(Centers)):
         for j2 in np.arange(count):
             r = random.random() * 1.5
-            Data.append( [Centers[j][0] + r * np.cos(random.random() * 2 * m.pi), Centers[j][1] + r * np.sin(random.random() * 2 * m.pi)] )
+            Data.append([Centers[j][0] + r * np.cos(random.random() * 2 * m.pi),
+                         Centers[j][1] + r * np.sin(random.random() * 2 * m.pi)])
     diff = int(n - k * count)
     for j2 in np.arange(diff):
-        Data.append( [random.random() * 8, random.random() * 8] )
+        Data.append([random.random() * 8, random.random() * 8])
     return Data
 
 
@@ -564,7 +565,7 @@ def Initial_Centroids(k, D):
     Centroids = []
     for j in np.arange(k):
         p = random.randint(0, int(len(D_copy) - 1))
-        Centroids.append( [ D_copy[p][0], D_copy[p][1] ] )
+        Centroids.append([D_copy[p][0], D_copy[p][1]])
         D_copy.remove(D_copy[p])
     return Centroids
 
@@ -584,7 +585,7 @@ def Update_Centroids(CT, CL):
         for c2 in np.arange(len(CL[c1])):
             mean_x = mean_x + CL[c1][c2][0] / len(CL[c1])
             mean_y = mean_y + CL[c1][c2][1] / len(CL[c1])
-        Centroids.append( [mean_x, mean_y] )
+        Centroids.append([mean_x, mean_y])
     return Centroids, old_Centroids
 
 
@@ -603,8 +604,8 @@ def Update_Clusters(D, CT, CL):
         closest = 'c'
         distance = 1000000
         for c2 in np.arange(len(Clusters)):
-            Dist = m.sqrt( (CT[c2][0] - D[d][0]) ** 2 + (CT[c2][1] - D[d][1]) ** 2 )
-            if(Dist < distance):
+            Dist = m.sqrt((CT[c2][0] - D[d][0]) ** 2 + (CT[c2][1] - D[d][1]) ** 2)
+            if (Dist < distance):
                 distance = Dist
                 closest = int(c2)
         Clusters[closest].append(D[d])
@@ -621,9 +622,9 @@ def Check_Termination(CL, oCL):
         for c2 in np.arange(len(oCL[c1])):
             P_found = False
             for c3 in np.arange(len(CL[c1])):
-                if(CL[c1][c3] == oCL[c1][c2]):
+                if (CL[c1][c3] == oCL[c1][c2]):
                     P_found = True
-            if(P_found == False):
+            if (P_found == False):
                 terminate = False
     return terminate
 
@@ -701,8 +702,216 @@ def Q_Update_Clusters(data, centroids, old_clusters, p_range, shots):
             qc.u(p_theta, p_phi, 0, q[1])
             qc.u(c_theta, c_phi, 0, q[2])
             tmp = SWAP_Test(qc, q[0], q[1], q[2], c[0], shots)
-            if(tmp > distance):
+            if (tmp > distance):
                 distance = tmp
                 closest = int(j)
         clusters[closest].append(data[i])
     return clusters, old_clusters
+
+
+# ==============================================
+# ---------------  Q-Means ---------------------
+# ==============================================
+
+def E_Expectation_Value(qc, Energies):
+    """
+    :param qc: QuantumCircuit
+    :param Energies: array
+    Computes and returns the energy expectation value using the quantum system's
+    wavefunction
+    """
+    SV = execute(qc, S_simulator, shots=1).result().get_statevector()
+    EV = 0
+    for i in range(len(SV)):
+        EV = EV + Energies[i] * abs(SV[i] * np.conj(SV[i]))
+    EV = round(EV, 4)
+    return EV
+
+
+def Top_States(States, Energies, SV, top):
+    """
+    Displays the top most probable states in the system,
+    and their associated energy
+    :param States: array
+    :param Energies: array
+    :param SV: Qiskit statevector
+    :param top: integer
+    """
+    P = []
+    S = []
+    E = []
+    for _ in np.arange(top):
+        P.append(-1)
+        S.append('no state')
+        E.append('no energy')
+    for i in np.arange(len(States)):
+        new_top = False
+        probs = abs(SV[i] * np.conj(SV[i])) * 100
+        state = States[i]
+        energ = Energies[i]
+        j = 0
+        while (new_top is False) and (j < top):
+            if probs > P[j]:
+                for k in np.arange(int(len(P) - (j + 1))):
+                    P[int(-1 - k)] = P[int(-1 - (k + 1))]
+                    S[int(-1 - k)] = S[int(-1 - (k + 1))]
+                    E[int(-1 - k)] = E[int(-1 - (k + 1))]
+                P[j] = probs
+                S[j] = state
+                E[j] = energ
+                new_top = True
+            j = int(j + 1)
+    for s in np.arange(top):
+        print('State ', S[s], '    Probability: ', round(P[s], 2),
+              '%', '    Energy: ', round(E[s], 2))
+
+
+def Ising_Energy(V, E, **kwargs):
+    """
+    Calculates and returns the energy for each state according to either of the
+    Ising Model Energy functions
+    :param V: array
+    :param E: array
+    :param kwargs: Transverse(Bool) - Changes to the Transverse Ising Energy Model
+    """
+    Trans = False
+    if 'Transverse' in kwargs:
+        if kwargs['Transverse'] is True:
+            Trans = True
+    Energies = []
+    States = []
+    for s in np.arange(2 ** len(V)):
+        B = Binary(int(s), 2 ** len(V), 'L')
+        B2 = []
+        for i in np.arange(len(B)):
+            if B[i] == 0:
+                B2.append(1)
+            else:
+                B2.append(-1)
+        state = ''
+        energy = 0
+        for s2 in np.arange(len(B)):
+            state += str(B[s2])
+            energy -= V[s2][1] * B2[s2]
+        States.append(state)
+        for j in np.arange(len(E)):
+            if Trans is False:
+                energy -= B2[int(E[j][0])] * B2[int(E[j][1])]
+            else:
+                energy -= B2[int(E[j][0])] * B2[int(E[j][1])] * E[j][2]
+        Energies.append(energy)
+    return Energies, States
+
+
+def Uc_Ising(qc, q, gamma, Vert, Edge, T):
+    """
+    Applies the necessary gates for either of the Ising Energy Model U_C, gamma)
+    :param qc: QuantumCircuit
+    :param q: QuantumRegister
+    :param gamma: float
+    :param Vert: array
+    :param Edge: array
+    :param T: Bool
+    """
+    for e in np.arange(len(Edge)):
+        if T is False:
+            G = gamma
+        else:
+            G = gamma * Edge[e][2]
+        qc.cx(q[int(Edge[e][0])], q[int(Edge[e][1])])
+        qc.rz(2 * G, q[int(Edge[e][1])])
+        qc.cx(q[int(Edge[e][0])], q[int(Edge[e][1])])
+    for v in np.arange(len(Vert)):
+        qc.rz(gamma, q[int(Vert[v][0])])
+
+
+def Ub_Mixer1(qc, q, beta, Vert):
+    """
+    Applies the necessary gates for U(B, beta) using only Rx gates
+    :param qc: QuantumCircuit
+    :param q: QuantumRegister
+    :param beta: float
+    :param Vert: array
+    """
+    for v in np.arange(len(Vert)):
+        qc.rx(beta, q[int(v)])
+
+
+def Ub_Mixer2(qc, q, beta, Vert):
+    """
+    Applies the necessary gates for U(B, beta) using Rx, Ry, and CNOT gates
+    :param qc: QuantumCircuit
+    :param q: QuantumRegister
+    :param beta: float
+    :param Vert: array
+    """
+    for v in np.arange(len(Vert)):
+        qc.rx(beta, q[int(Vert[v][0])])
+    qc.cx(q[0], q[1])
+    qc.cx(q[2], q[0])
+    for v2 in np.arange(len(Vert)):
+        qc.ry(beta, q[int(Vert[v2][0])])
+
+
+def Ising_Circuit(qc, q, V, E, beta, gamma, **kwargs):
+    """
+    Constructs the quantum circuit for a given geometry,
+    using the either of the Ising Model Energy functions
+    :param qc: QuantumCircuit
+    :param q: QuantumRegister
+    :param V: array
+    :param E: array
+    :param beta: float
+    :param gamma: float
+    :param kwargs: Transverse(Bool): Changes to the Transverse Ising Energy Model
+    :param kwargs: Mixing(integer): Denotes which mixing circuit to use for U(B, beta)
+    """
+    Trans = False
+    if 'Transverse' in kwargs:
+        if kwargs['Transverse'] is True:
+            Trans = True
+    Mixer = 1
+    if 'Mixing' in kwargs:
+        Mixer = int(kwargs['Mixing'])
+    Uc_Ising(qc, q, gamma, V, E, Trans)
+    if Mixer == 2:
+        Ub_Mixer2(qc, q, beta, V)
+    else:
+        Ub_Mixer1(qc, q, beta, V)
+
+
+def Ising_Gradient_Descent(qc, q, Circ, V, E, beta, gamma, epsilon, En, step, **kwargs):
+    """
+    Calculates and returns the next values for beta and gamma using gradient descent
+    :param qc: QuantumCircuit
+    :param q: QuantumRegister
+    :param Circ: Ising_Circuit function
+    :param V: array
+    :param E: array
+    :param beta: float
+    :param gamma: float
+    :param epsilon: float
+    :param En: array
+    :param step: float
+    :param kwargs: Transverse(Bool): Changes to the Transverse Ising Energy Model
+    :param kwargs: Mixing(integer): Denotes which mixing circuit to use for U(B, beta)
+    """
+    Trans = False
+    if 'Transverse' in kwargs:
+        if kwargs['Transverse'] is True:
+            Trans = True
+    Mixer = 1
+    if 'Mixing' in kwargs:
+        Mixer = int(kwargs['Mixing'])
+    params = [[beta + epsilon, gamma], [beta - epsilon, gamma], [beta, gamma + epsilon], [beta, gamma - epsilon]]
+    ev = []
+    for i in np.arange(4):
+        q = QuantumRegister(len(V))
+        qc = QuantumCircuit(q)
+        for hh in np.arange(len(V)):
+            qc.h(q[int(hh)])
+        Circ(qc, q, V, E, params[i][0], params[i][1], Transverse=Trans, Mixing=Mixer)
+        ev.append(E_Expectation_Value(qc, En))
+    beta_next = beta - (ev[0] - ev[1]) / (2.0 * epsilon) * step
+    gamma_next = gamma - (ev[2] - ev[3]) / (2.0 * epsilon) * step
+    return beta_next, gamma_next
