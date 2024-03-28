@@ -2,10 +2,11 @@
 import random
 import time
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Aer, execute
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
+from qiskit_aer import AerSimulator
+from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, Fake20QV1
 import qiskit.circuit.library as lib
-from qiskit.compiler.transpiler import transpile
 import qiskit.qasm2
 
 import numpy as np
@@ -17,7 +18,7 @@ from dataset import test
 
 
 class OptimalPath:
-    def __init__(self, point_num, points, total_qubit_num):
+    def __init__(self, point_num, points):
         """
         :param point_num: the number of cities in the route
         :param points: coordinates of all nodes
@@ -27,7 +28,6 @@ class OptimalPath:
             return
 
         self.points = points
-        self.total_qubit_num = total_qubit_num
         # the number of choices for every step, excluding the start and the end
         self.choice_num = point_num - 2
         # the number of steps that have choices
@@ -37,9 +37,10 @@ class OptimalPath:
         self.qram_num = self.step_num * self.choice_bit_num
         # the precision of route distance
         self.precision = 6
-        self.anc_num = self.precision - 1
         self.buffer_num = max(self.precision, self.step_num)
+        self.anc_num = max(self.precision - 1, self.step_num - 2)
         self.res_num = 3
+        self.total_qubit_num = self.qram_num + self.buffer_num + self.anc_num + self.res_num
 
         # the parameters for the process of Grover algorithm
         self.threshold = 0.0
@@ -109,13 +110,11 @@ class OptimalPath:
 
     def init_grover_param(self):
         # adjust the number of bits of every quantum register
-        if self.qram_num + self.buffer_num + self.anc_num + self.res_num > self.total_qubit_num:
-            raise ValueError("The number of nodes is too much!")
-        self.anc_num = max(self.anc_num, self.total_qubit_num - self.qram_num - self.buffer_num - self.res_num)
         print("qram_num: ", self.qram_num)
         print("buffer_num: ", self.buffer_num)
         print("anc_num: ", self.anc_num)
         print("res_num: ", self.res_num)
+        print("total_qubit_num: ", self.total_qubit_num)
 
         self.init_dist_adj()
 
@@ -139,13 +138,6 @@ class OptimalPath:
         self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
 
         # get connection to IBM Quantum Platform
-        # service = QiskitRuntimeService()
-        # backend = 'ibmq_qasm_simulator'
-        # # backend = 'ibm_kyoto'
-        # backend = 'ibm_brisbane'
-        # self.sampler = Sampler(backend=backend)
-        # self.session = Session(service=service, backend=backend)
-        # self.sampler = Sampler(session=self.session, options=options)
 
     def check_route_validity(self):
         qram = QuantumRegister(self.qram_num)
@@ -165,72 +157,6 @@ class OptimalPath:
                           [*qram[i * self.choice_bit_num: (i + 1) * self.choice_bit_num], *anc, buffer[j]])
 
         return qc
-
-    # the recursion method of QPE
-    # def qpe_u_operator(self, dists: np.ndarray, target_num: int, anc_num: int) -> QuantumCircuit:
-    #     control = QuantumRegister(1)
-    #     target = QuantumRegister(target_num)
-    #     anc = QuantumRegister(anc_num)
-    #     qc = QuantumCircuit(control, target, anc)
-    #
-    #     if target_num < 2:
-    #         qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
-    #         qc.p(2.0 * m.pi * dists[0], control)
-    #         return qc
-    #     elif target_num == 2:
-    #         qc.cp(2.0 * m.pi * (dists[2] - dists[0]), control, target[1])
-    #         qc.p(2.0 * m.pi * dists[0], control)
-    #         qc.cp(2.0 * m.pi * (dists[1] - dists[0]), control, target[0])
-    #
-    #         delta_dists = 2.0 * m.pi * (dists[3] - dists[1] - dists[2] + dists[0])
-    #         qc.ccx(control, target[1], anc[0])
-    #         qc.cp(delta_dists, anc[0], target[0])
-    #         qc.ccx(control, target[1], anc[0])
-    #         return qc
-    #     else:
-    #         for i in np.arange(2 ** (target_num - 2)):
-    #             reference_state = i + 2 ** target_num
-    #             qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1),
-    #                       [*target[2:], control[0], *anc[1:], anc[0]])
-    #
-    #             qc.append(self.qpe_u_operator(dists[i * 4: (i + 1) * 4], 2, anc_num - 1), [anc[0], target[:2], anc[1:]])
-    #
-    #             qc.append(NOT_gate.equal_to_int_NOT(reference_state, target_num - 1, anc_num - 1).inverse(),
-    #                       [*target[2:], control[0], *anc[1:], anc[0]])
-    #
-    # def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
-    #     control = QuantumRegister(self.precision)
-    #     target = QuantumRegister(self.choice_bit_num)
-    #     anc = QuantumRegister(self.anc_num)
-    #     qc = QuantumCircuit(control, target, anc)
-    #
-    #     for i in np.arange(self.precision):
-    #         for _ in np.arange(2 ** (self.precision - i - 1)):
-    #             qc.append(self.qpe_u_operator(dists, self.choice_bit_num, self.anc_num), [control[i], *target, *anc])
-    #
-    #     return qc
-    #
-    # def custom_qpe_u(self, dist_adj: np.ndarray) -> QuantumCircuit:
-    #     control = QuantumRegister(self.precision)
-    #     source = QuantumRegister(self.choice_bit_num)
-    #     target = QuantumRegister(self.choice_bit_num)
-    #     anc = QuantumRegister(self.anc_num)
-    #     qc = QuantumCircuit(control, source, target, anc)
-    #
-    #     for i in np.arange(len(dist_adj)):
-    #         for j in np.arange(self.precision):
-    #             ref_state = i + 2 ** self.choice_bit_num
-    #             qc.append(NOT_gate.equal_to_int_NOT(ref_state, self.choice_bit_num + 1, self.anc_num - 1),
-    #                       [*source, control[j], *anc[1:], anc[0]])
-    #
-    #             for _ in np.arange(2 ** (self.precision - j - 1)):
-    #                 qc.append(self.qpe_u_operator(dist_adj[i], self.choice_bit_num, self.anc_num - 1),
-    #                           [anc[0], *target, *anc[1:]])
-    #
-    #             qc.append(NOT_gate.equal_to_int_NOT(ref_state, self.choice_bit_num + 1, self.anc_num - 1).inverse(),
-    #                       [*source, control[j], *anc[1:], anc[0]])
-    #
-    #     return qc
 
     def qpe_u(self, dists: np.ndarray) -> QuantumCircuit:
         control = QuantumRegister(self.precision)
@@ -369,12 +295,12 @@ class OptimalPath:
         # print(qc_end)
 
         if self.job is not None:
-            output = self.job.result().quasi_dists[0]
-            # output = self.job.result().get_counts()
+            # output = self.job.result().quasi_dists[0]
+            output = self.job.result().get_counts()
             output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-            output = util.int_to_binary(output[0][0], self.qram_num)
-            new_path = self.translate_route(output)
-            # new_path = self.translate_route(output[0][0])
+            # output = util.int_to_binary(output[0][0], self.qram_num)
+            # new_path = self.translate_route(output)
+            new_path = self.translate_route(output[0][0])
             new_threshold = self.cal_single_route_dist(new_path)
             print("new_path: ", new_path)
 
@@ -407,22 +333,85 @@ class OptimalPath:
 
         # print("depth: ", qc.depth())
         qc.measure(qram, cl)
-        # backend = Aer.backends(name='qasm_simulator')[0]
-        # self.job = execute(qc, backend, shots=1000)
-        # service = QiskitRuntimeService()
-        # backend = service.backend('ibm_brisbane')
-        # backend = service.backend('ibm_osaka')
-        # backend = service.backend('ibm_kyoto')
-        basis_gates = ['ID', 'RZ', 'SX', 'X', 'H', 'CX']
-        print('starting transpile!')
-        # qc = transpile(qc, backend=backend, optimization_level=2)
-        qc = transpile(qc, basis_gates=basis_gates)
-        print('transpile successfully!')
-        qiskit.qasm2.dump(qc, "my_circuit1.qasm")
-        # sampler = Sampler(backend=backend)
-        # self.job = sampler.run(circuits=qc, shots=1000)
-        # # print(self.session.details())
-        # self.async_grover()
+
+        real_backend = ['ibm_brisbane', 'ibm_osaka', 'ibm_kyoto']
+        remote_backend = ['ibmq_qasm_simulator', 'simulator_extended_stabilizer']  # 32, 63
+        exec_type = ['sim', 'remote_sim', 'real']
+        noisy = True
+        shots = 1024
+        self.execute_qc(qc, shots=shots, noisy=noisy, exec_type=exec_type[0], backend=None)
+
+        self.async_grover()
+
+        # # backend = Aer.backends(name='qasm_simulator')[0]
+        # # self.job = execute(qc, backend, shots=1000)
+        # # service = QiskitRuntimeService()
+        # # backend = service.backend('ibm_brisbane')
+        # # backend = service.backend('ibm_osaka')
+        # # backend = service.backend('ibm_kyoto')
+        # basis_gates = ['ID', 'RZ', 'SX', 'X', 'H', 'CX']
+        # print('starting transpile!')
+        # # qc = transpile(qc, backend=backend, optimization_level=2)
+        # qc = transpile(qc, basis_gates=basis_gates)
+        # print('transpile successfully!')
+        # qiskit.qasm2.dump(qc, "my_circuit1.qasm")
+        # # sampler = Sampler(backend=backend)
+        # # self.job = sampler.run(circuits=qc, shots=1000)
+        # # # print(self.session.details())
+        # # self.async_grover()
+
+    def execute_qc(self, qc, shots, noisy, exec_type, backend):
+        if noisy is False and exec_type == 'sim':
+            simulator = AerSimulator()
+
+            print(qc.depth())
+            print('start transpile')
+            tran_qc = transpile(qc, simulator)
+            print('end transpile')
+            print(tran_qc.depth())
+            self.job = simulator.run(tran_qc, shots=shots)
+        elif noisy is True and exec_type == 'sim':
+            # if self.total_qubit_num <= 20:
+            #     device_backend = Fake20QV1()
+            # elif self.total_qubit_num <= 27:
+            #     device_backend = Fake27QPulseV1()
+            # else:
+            #     device_backend = Fake127QPulseV1()
+            device_backend = Fake127QPulseV1()
+            simulator = AerSimulator.from_backend(device_backend)
+            print(qc.depth())
+            print('start transpile')
+            tran_qc = transpile(qc, simulator)
+            print('end transpile')
+            print(tran_qc.depth())
+            self.job = simulator.run(tran_qc, shots=shots)
+        elif noisy is False and exec_type == 'remote_sim':
+            service = QiskitRuntimeService()
+            device_backend = service.backend(backend)
+            sampler = Sampler(backend=device_backend)
+            self.job = sampler.run(circuits=qc, shots=shots)
+        elif noisy is True and exec_type == 'remote_sim':
+            if self.total_qubit_num <= 27:
+                noisy_backend = Fake27QPulseV1()
+            else:
+                noisy_backend = Fake127QPulseV1()
+            noisy_simulator = AerSimulator.from_backend(noisy_backend)
+
+            service = QiskitRuntimeService()
+            device_backend = service.backend(backend)
+            sampler = Sampler(backend=device_backend)
+            self.job = sampler.run(circuits=transpile(qc, noisy_simulator), shots=shots)
+        elif noisy is True and exec_type == 'real':
+            service = QiskitRuntimeService()
+            device_backend = service.backend(backend)
+            sampler = Sampler(backend=device_backend)
+
+            print(qc.depth())
+            print('start transpile')
+            tran_qc = transpile(qc, device_backend)
+            print('end transpile')
+            print(tran_qc.depth())
+            self.job = sampler.run(circuits=tran_qc, shots=shots)
 
     def main(self):
         if self.point_num < 4:
@@ -444,7 +433,7 @@ class OptimalPath:
 
 if __name__ == '__main__':
     test_points = test.cycle_test_for_3
-    test = OptimalPath(4, test_points, 29)
+    test = OptimalPath(4, test_points)
     # print(test.dist_adj)
     # print(test.end_dists)
     # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])

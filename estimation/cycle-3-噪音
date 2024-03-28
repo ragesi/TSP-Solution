@@ -1,0 +1,19 @@
+qram_num:  2
+buffer_num:  6
+anc_num:  5
+res_num:  3
+total_qubit_num:  16
+threshold:  57.0
+iter_num:  1.0
+8
+start transpile
+end transpile
+5547
+new_path:  [1, 1]
+8
+start transpile
+end transpile
+5555
+new_path:  [1, 0]
+time:  725.4826002120972
+[0, 1, 2, 3]
