@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 import random
 import time
+import argparse
+import sys
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
@@ -13,12 +15,13 @@ import numpy as np
 import math as m
 import cmath as cm
 
+sys.path.append("..")
 from utils import NOT_gate, util
 from dataset import test
 
 
 class OptimalPath:
-    def __init__(self, point_num, points):
+    def __init__(self, point_num, points, precision, env, backend, noisy):
         """
         :param point_num: the number of cities in the route
         :param points: coordinates of all nodes
@@ -36,7 +39,7 @@ class OptimalPath:
         self.choice_bit_num = m.ceil(1.0 * m.log2(self.choice_num))
         self.qram_num = self.step_num * self.choice_bit_num
         # the precision of route distance
-        self.precision = 6
+        self.precision = precision
         self.buffer_num = max(self.precision, self.step_num)
         self.anc_num = max(self.precision - 1, self.step_num - 2)
         self.res_num = 3
@@ -57,6 +60,9 @@ class OptimalPath:
         # run on the IBM Quantum Platform
         # self.session = None
         # self.sampler = None
+        self.env = env
+        self.backend = backend
+        self.noisy = noisy
         self.job = None
 
         # initialize all parameters for Grover algorithm
@@ -334,84 +340,42 @@ class OptimalPath:
         # print("depth: ", qc.depth())
         qc.measure(qram, cl)
 
-        real_backend = ['ibm_brisbane', 'ibm_osaka', 'ibm_kyoto']
-        remote_backend = ['ibmq_qasm_simulator', 'simulator_extended_stabilizer']  # 32, 63
-        exec_type = ['sim', 'remote_sim', 'real']
-        noisy = True
+        # remote_backend: 32, 63
         shots = 1024
-        self.execute_qc(qc, shots=shots, noisy=noisy, exec_type=exec_type[0], backend=None)
+        self.execute_qc(qc, shots=shots)
 
         self.async_grover()
 
-        # # backend = Aer.backends(name='qasm_simulator')[0]
-        # # self.job = execute(qc, backend, shots=1000)
-        # # service = QiskitRuntimeService()
-        # # backend = service.backend('ibm_brisbane')
-        # # backend = service.backend('ibm_osaka')
-        # # backend = service.backend('ibm_kyoto')
-        # basis_gates = ['ID', 'RZ', 'SX', 'X', 'H', 'CX']
-        # print('starting transpile!')
-        # # qc = transpile(qc, backend=backend, optimization_level=2)
-        # qc = transpile(qc, basis_gates=basis_gates)
-        # print('transpile successfully!')
-        # qiskit.qasm2.dump(qc, "my_circuit1.qasm")
-        # # sampler = Sampler(backend=backend)
-        # # self.job = sampler.run(circuits=qc, shots=1000)
-        # # # print(self.session.details())
-        # # self.async_grover()
+    def execute_qc(self, qc, shots):
+        print("The circuit depth before transpile", qc.depth())
+        trans_qc = None
 
-    def execute_qc(self, qc, shots, noisy, exec_type, backend):
-        if noisy is False and exec_type == 'sim':
-            simulator = AerSimulator()
-
-            print(qc.depth())
-            print('start transpile')
-            tran_qc = transpile(qc, simulator)
-            print('end transpile')
-            print(tran_qc.depth())
-            self.job = simulator.run(tran_qc, shots=shots)
-        elif noisy is True and exec_type == 'sim':
-            # if self.total_qubit_num <= 20:
-            #     device_backend = Fake20QV1()
-            # elif self.total_qubit_num <= 27:
-            #     device_backend = Fake27QPulseV1()
-            # else:
-            #     device_backend = Fake127QPulseV1()
-            device_backend = Fake127QPulseV1()
-            simulator = AerSimulator.from_backend(device_backend)
-            print(qc.depth())
-            print('start transpile')
-            tran_qc = transpile(qc, simulator)
-            print('end transpile')
-            print(tran_qc.depth())
-            self.job = simulator.run(tran_qc, shots=shots)
-        elif noisy is False and exec_type == 'remote_sim':
-            service = QiskitRuntimeService()
-            device_backend = service.backend(backend)
-            sampler = Sampler(backend=device_backend)
-            self.job = sampler.run(circuits=qc, shots=shots)
-        elif noisy is True and exec_type == 'remote_sim':
-            if self.total_qubit_num <= 27:
-                noisy_backend = Fake27QPulseV1()
+        # transpile the circuit to target mode
+        if self.env != 'real':
+            if self.noisy:
+                if self.total_qubit_num <= 27:
+                    device_backend = Fake27QPulseV1()
+                else:
+                    device_backend = Fake127QPulseV1()
+                simulator = AerSimulator.from_backend(device_backend)
             else:
-                noisy_backend = Fake127QPulseV1()
-            noisy_simulator = AerSimulator.from_backend(noisy_backend)
+                simulator = AerSimulator()
 
-            service = QiskitRuntimeService()
-            device_backend = service.backend(backend)
-            sampler = Sampler(backend=device_backend)
-            self.job = sampler.run(circuits=transpile(qc, noisy_simulator), shots=shots)
-        elif noisy is True and exec_type == 'real':
-            service = QiskitRuntimeService()
-            device_backend = service.backend(backend)
-            sampler = Sampler(backend=device_backend)
+            trans_qc = transpile(qc, simulator)
+            print("The circuit depth after transpile", trans_qc.depth())
 
-            print(qc.depth())
-            print('start transpile')
-            tran_qc = transpile(qc, device_backend)
-            print('end transpile')
-            print(tran_qc.depth())
-            self.job = sampler.run(circuits=tran_qc, shots=shots)
+            if self.env == 'sim':
+                self.job = simulator.run(trans_qc, shots=shots)
+                return
+
+        service = QiskitRuntimeService()
+        device_backend = service.backend(self.backend)
+        sampler = Sampler(backend=device_backend)
+
+        if self.env == 'real':
+            trans_qc = transpile(qc, device_backend)
+            print("The circuit depth after transpile", trans_qc.depth())
+        self.job = sampler.run(circuits=trans_qc, shots=shots)
 
     def main(self):
         if self.point_num < 4:
@@ -432,60 +396,38 @@ class OptimalPath:
 
 
 if __name__ == '__main__':
-    test_points = test.cycle_test_for_3
-    test = OptimalPath(4, test_points)
-    # print(test.dist_adj)
-    # print(test.end_dists)
-    # test.qc.append(test.check_route_validity(), [*test.qram, *test.buffer[:test.step_num], *test.anc, test.res[0]])
-    # test.qc.append(test.check_dist_below_threshold(53), [*test.qram, *test.buffer[:test.precision], *test.anc, test.res[1]])
-    # test.qc.measure([*test.qram, test.res[0]], test.cl)
-    # output = execute.local_simulator(test.qc, 1000)
+    parser = argparse.ArgumentParser(description='Optimize path')
+    parser.add_argument('--scale', '-s', type=int, default=3, help='The number of nodes in TSP graph')
+    parser.add_argument('--precision', '-p', type=int, default=6, help='The precision of the QPE process')
+    parser.add_argument('--env', '-e', type=str, default='sim',
+                        help='The environment to run program, parameter: "sim"; "remote_sim"; "real"')
+    parser.add_argument('--backend', '-b', type=str, default=None, help='The backend to run program')
+    parser.add_argument('--noisy', '-n', type=bool, default=False, help='determining whether to add noisy')
 
-    # dists = [0.390625, 0., 0., 0.]
-    # qram = QuantumRegister(6)
-    # buffer = QuantumRegister(6)
-    # anc = QuantumRegister(12)
-    # res = QuantumRegister(3)
-    # cl1 = ClassicalRegister(6)
-    # # cl2 = ClassicalRegister(6)
-    # qc = QuantumCircuit(qram, buffer, anc, res, cl1)
-    # qc.x([qram[2], qram[5]])
-    # qc.append(test.cal_distance_qpe(), [*qram, *buffer, *anc])
-    # # qc.measure(qram, cl1)
-    # qc.measure(buffer, cl1)
-    # output = execute.local_simulator(qc, 10)
-    # print(output)
-    # num = 0
-    # for item in output.items():
-    #     if item[0][0] == '1':
-    #         print(item)
-    #         num += 1
-    # print(num)
+    args = parser.parse_args()
+    print(args.noisy)
+    # 判断输入是否合法
+    if args.scale < 3 or args.scale > 9:
+        raise ValueError('The scale must be between 3 and 9')
+    if args.env != 'sim' and args.env != 'remote_sim' and args.env != 'real':
+        raise ValueError('The environment must be either "sim" or "remote_sim" or "real"!')
+    if args.env == 'remote_sim' and args.backend != 'ibmq_qasm_simulator' and args.backend != 'simulator_extended_stabilizer':
+        raise ValueError('The backend is illegal for remote simulator!')
+    if args.env == 'real' and args.backend != 'ibm_brisbane' and args.backend != 'ibm_osaka' and args.backend != 'ibm_kyoto':
+        raise ValueError('The backend is illegal for a real quantum computer!')
 
-    # start_time = time.time()
-    # output = test.grover(48, 2)
-    # end_time = time.time()
-    # print("time: ", end_time - start_time)
-    # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-    # print(output)
+    test_points_dict = {
+        3: test.cycle_test_for_3,
+        4: test.cycle_test_for_4,
+        5: test.cycle_test_for_5,
+        6: test.cycle_test_for_6,
+        7: test.cycle_test_for_7
+    }
+    test_points = test_points_dict[args.scale]
+    test = OptimalPath(args.scale + 1, test_points, args.precision, args.env, args.backend, args.noisy)
 
     start_time = time.time()
     path = test.main()
     end_time = time.time()
     print("time: ", end_time - start_time)
     print(path)
-
-    # test.qc.measure([*test.qram, test.res[0]], test.cl)
-    # output = execute.local_simulator(test.qc, 1000)
-    # output = display_result.Measurement(test.qc, return_M=True, print_M=False, shots=2000)
-    # output = execute.sampler_run('simulator_mps', 1, 2, test.qc, 1000)
-    # output = dict(output)
-    # output = {util.int_to_binary(key, test.qram_num + 1): val for key, val in output.items()}
-    # output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-    # print(output)
-    # num = 0
-    # for item in output.items():
-    #     if item[0][0] == '1':
-    #         print(item)
-    #         num += 1
-    # print(num)
