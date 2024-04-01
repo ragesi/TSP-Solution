@@ -54,8 +54,8 @@ class OptimalPath:
         self.grover_repeat_num = 0
 
         # the distance adjacency
-        self.dist_adj = np.zeros((point_num - 1, 2 ** self.choice_bit_num))
-        self.end_dists = np.zeros(2 ** self.choice_bit_num)
+        self.dist_adj = None
+        self.end_dists = np.zeros(self.choice_num)
 
         # run on the IBM Quantum Platform
         # self.session = None
@@ -81,7 +81,7 @@ class OptimalPath:
                 dist_adj[i][j] = abs(self.points[j + 1][0] - self.points[i][0]) + abs(
                     self.points[j + 1][1] - self.points[i][1])
                 max_dist = max(max_dist, dist_adj[i][j])
-        max_dist *= 1.2
+        # max_dist *= 1.2
 
         order_dists = []
         for i in range(self.point_num - 1):
@@ -112,7 +112,7 @@ class OptimalPath:
                 continue
             self.end_dists[i - 1] = dist_adj[i][-1]
         # make up the rest of adjacency matrix
-        self.dist_adj[:, :self.choice_num] = dist_adj[:, :self.choice_num]
+        self.dist_adj = dist_adj[:, :self.choice_num]
 
     def init_grover_param(self):
         # adjust the number of bits of every quantum register
@@ -319,6 +319,7 @@ class OptimalPath:
                 # self.grover_repeat_num = round(m.log(m.sqrt(m.factorial(self.choice_num)), self.alpha))
                 self.grover_repeat_num = round(m.log(m.sqrt(2 ** self.qram_num) / self.grover_iter_max_num, self.alpha))
                 print("new_threshold: ", new_threshold)
+                print("grover repeat num: ", self.grover_repeat_num)
             else:
                 self.grover_repeat_num -= 1
                 self.grover_iter_max_num = min(self.alpha * self.grover_iter_max_num, max_iter_bound)
@@ -425,6 +426,8 @@ if __name__ == '__main__':
     }
     test_points = test_points_dict[args.scale]
     test = OptimalPath(args.scale + 1, test_points, args.precision, args.env, args.backend, args.noisy)
+    # print(test.dist_adj)
+    # print(test.end_dists)
 
     start_time = time.time()
     path = test.main()

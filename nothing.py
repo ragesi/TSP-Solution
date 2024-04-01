@@ -36,44 +36,22 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
     return min_len
 
 
-# points = [[19, 41],
-#           [29, 26],
-#           [19, 29],
-#           [33, 37],]
-#           # [57, 87],
-#           # [94, 63],
-#           # [88, 88],
-#           # [50, 11],
-#           # [2, 30],
-#           # [68, 83],
-#           # [65, 14],
-#           # [36, 29],
-#           # [53, 99],]
-#           # [94, 37],
-#           # [6, 23],
-#           # [72, 57],
-#           # [24, 58],
-#           # [45, 60],
-#           # [59, 39],
-#           # [97, 23]]
-
-point_test_for_5 = [[22, 23],
-                    [21, 4],
-                    [13, 13],
-                    [16, 6],
-                    [13, 23],
-                    [22, 23]]
+cycle_test_for_4 = [[15, 2],
+                    [7, 18],
+                    [13, 9],
+                    [1, 20],
+                    [15, 2], ]
 
 cur_path = [0]
-optimal_path = [0 for _ in range(len(point_test_for_5))]
+optimal_path = [0 for _ in range(len(cycle_test_for_4))]
 threshold = 100000
-is_chosen = [False for _ in range(len(point_test_for_5))]
-threshold = find_optimal_path(point_test_for_5, cur_path, 0, optimal_path, threshold, is_chosen)
+is_chosen = [False for _ in range(len(cycle_test_for_4))]
+threshold = find_optimal_path(cycle_test_for_4, cur_path, 0, optimal_path, threshold, is_chosen)
 
-x_values = [point_test_for_5[optimal_path[i]][0] for i in range(len(optimal_path))]
-y_values = [point_test_for_5[optimal_path[i]][1] for i in range(len(optimal_path))]
-plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-plt.show()
+# x_values = [cycle_test_for_4[optimal_path[i]][0] for i in range(len(optimal_path))]
+# y_values = [cycle_test_for_4[optimal_path[i]][1] for i in range(len(optimal_path))]
+# plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
+# plt.show()
 
 print(optimal_path)
 print(threshold)
