@@ -5,6 +5,7 @@ import argparse
 import sys
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
+from qiskit_aer import noise
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 from qiskit_aer import AerSimulator
 from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, GenericBackendV2
@@ -351,36 +352,24 @@ class OptimalPath:
 
     def execute_qc(self, qc, shots):
         print("The circuit depth before transpile", qc.depth())
-        trans_qc = None
 
-        # transpile the circuit to target mode
-        if self.env != 'real':
+        if self.env == 'sim':
             if self.noisy:
-                # if self.total_qubit_num <= 27:
-                #     device_backend = Fake27QPulseV1()
-                # else:
-                #     device_backend = Fake127QPulseV1()
-                # simulator = AerSimulator.from_backend(device_backend)
-                device_backend = GenericBackendV2(32)
+                device_backend = GenericBackendV2(self.total_qubit_num)
                 simulator = AerSimulator.from_backend(device_backend)
             else:
                 simulator = AerSimulator()
-
             trans_qc = transpile(qc, simulator)
             print("The circuit depth after transpile", trans_qc.depth())
-
-            if self.env == 'sim':
-                self.job = simulator.run(trans_qc, shots=shots)
-                return
-
-        service = QiskitRuntimeService()
-        device_backend = service.backend(self.backend)
-        sampler = Sampler(backend=device_backend)
-
-        if self.env == 'real':
+            self.job = simulator.run(trans_qc, shots=shots)
+        else:
+            # real quantum computer
+            service = QiskitRuntimeService()
+            device_backend = service.backend(self.backend)
+            sampler = Sampler(backend=device_backend)
             trans_qc = transpile(qc, device_backend)
             print("The circuit depth after transpile", trans_qc.depth())
-        self.job = sampler.run(circuits=trans_qc, shots=shots)
+            self.job = sampler.run(circuits=trans_qc, shots=shots)
 
     def main(self):
         if self.point_num < 4:
