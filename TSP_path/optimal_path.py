@@ -7,7 +7,7 @@ import sys
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 from qiskit_aer import AerSimulator
-from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, Fake20QV1
+from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, GenericBackendV2
 import qiskit.circuit.library as lib
 import qiskit.qasm2
 
@@ -301,12 +301,14 @@ class OptimalPath:
         # print(qc_end)
 
         if self.job is not None:
-            # output = self.job.result().quasi_dists[0]
-            output = self.job.result().get_counts()
-            output = sorted(output.items(), key=lambda item: item[1], reverse=True)
-            # output = util.int_to_binary(output[0][0], self.qram_num)
-            # new_path = self.translate_route(output)
-            new_path = self.translate_route(output[0][0])
+            if self.env == 'sim':
+                output = self.job.result().get_counts()
+                output = sorted(output.items(), key=lambda item: item[1], reverse=True)[0][0]
+            else:
+                output = self.job.result().quasi_dists[0]
+                output = sorted(output.items(), key=lambda item: item[1], reverse=True)
+                output = util.int_to_binary(output[0][0], self.qram_num)
+            new_path = self.translate_route(output)
             new_threshold = self.cal_single_route_dist(new_path)
             print("new_path: ", new_path)
 
@@ -354,10 +356,12 @@ class OptimalPath:
         # transpile the circuit to target mode
         if self.env != 'real':
             if self.noisy:
-                if self.total_qubit_num <= 27:
-                    device_backend = Fake27QPulseV1()
-                else:
-                    device_backend = Fake127QPulseV1()
+                # if self.total_qubit_num <= 27:
+                #     device_backend = Fake27QPulseV1()
+                # else:
+                #     device_backend = Fake127QPulseV1()
+                # simulator = AerSimulator.from_backend(device_backend)
+                device_backend = GenericBackendV2(32)
                 simulator = AerSimulator.from_backend(device_backend)
             else:
                 simulator = AerSimulator()
