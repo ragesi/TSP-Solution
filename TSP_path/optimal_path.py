@@ -7,7 +7,7 @@ import sys
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 from qiskit_aer import AerSimulator
-from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, Fake20QV1
+from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, GenericBackendV2
 import qiskit.circuit.library as lib
 import qiskit.qasm2
 
@@ -354,10 +354,12 @@ class OptimalPath:
         # transpile the circuit to target mode
         if self.env != 'real':
             if self.noisy:
-                if self.total_qubit_num <= 27:
-                    device_backend = Fake27QPulseV1()
-                else:
-                    device_backend = Fake127QPulseV1()
+                # if self.total_qubit_num <= 27:
+                #     device_backend = Fake27QPulseV1()
+                # else:
+                #     device_backend = Fake127QPulseV1()
+                # simulator = AerSimulator.from_backend(device_backend)
+                device_backend = GenericBackendV2(num_qubits=self.total_qubit_num)
                 simulator = AerSimulator.from_backend(device_backend)
             else:
                 simulator = AerSimulator()
