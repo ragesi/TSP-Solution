@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, Aer, execute
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
+from qiskit_aer import AerSimulator
+from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-from utils import display_result as disp, util
+# from utils import display_result as disp, util
 from cluster import SingleCluster
 import random
 
@@ -96,6 +98,7 @@ class QMeans:
             qc.measure(q[i * 3], cl[i])
 
         output = disp.Measurement(qc, return_M=True, print_M=False, shots=1000)
+
         dists = [0 for _ in np.arange(self.cluster_num)]
         for item in output.items():
             for i in np.arange(self.cluster_num):
@@ -105,7 +108,6 @@ class QMeans:
         # if dists[0] - dists[1] < 10:
         #     self.boundary.add(tuple(point))
         # return res_index
-
 
     def update_clusters(self):
         new_clusters = [[] for _ in np.arange(self.cluster_num)]
