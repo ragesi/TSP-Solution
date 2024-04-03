@@ -17,7 +17,7 @@ import math as m
 import cmath as cm
 
 sys.path.append("..")
-from utils import NOT_gate, util
+from utils import NOT_gate, util, execute
 from dataset import test
 
 
@@ -302,11 +302,10 @@ class OptimalPath:
         # print(qc_end)
 
         if self.job is not None:
+            output = execute.get_output(self.job, self.env)
             if self.env == 'sim':
-                output = self.job.result().get_counts()
                 output = sorted(output.items(), key=lambda item: item[1], reverse=True)[0][0]
             else:
-                output = self.job.result().quasi_dists[0]
                 output = sorted(output.items(), key=lambda item: item[1], reverse=True)
                 output = util.int_to_binary(output[0][0], self.qram_num)
             new_path = self.translate_route(output)
@@ -346,30 +345,9 @@ class OptimalPath:
 
         # remote_backend: 32, 63
         shots = 1024
-        self.execute_qc(qc, shots=shots)
+        self.job = execute.exec_qcircuit(qc, shots, self.env, self.noisy, self.backend)
 
         self.async_grover()
-
-    def execute_qc(self, qc, shots):
-        print("The circuit depth before transpile", qc.depth())
-
-        if self.env == 'sim':
-            if self.noisy:
-                device_backend = GenericBackendV2(self.total_qubit_num)
-                simulator = AerSimulator.from_backend(device_backend)
-            else:
-                simulator = AerSimulator()
-            trans_qc = transpile(qc, simulator)
-            print("The circuit depth after transpile", trans_qc.depth())
-            self.job = simulator.run(trans_qc, shots=shots)
-        else:
-            # real quantum computer
-            service = QiskitRuntimeService()
-            device_backend = service.backend(self.backend)
-            sampler = Sampler(backend=device_backend)
-            trans_qc = transpile(qc, device_backend)
-            print("The circuit depth after transpile", trans_qc.depth())
-            self.job = sampler.run(circuits=trans_qc, shots=shots)
 
     def main(self):
         if self.point_num < 4:

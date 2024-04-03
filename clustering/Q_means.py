@@ -7,9 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-# from utils import display_result as disp, util
+from utils import execute
 from cluster import SingleCluster
+from utils.read_dataset import read_dataset
 import random
+import math as m
 
 
 class QMeans:
@@ -97,12 +99,15 @@ class QMeans:
         for i in np.arange(self.cluster_num):
             qc.measure(q[i * 3], cl[i])
 
-        output = disp.Measurement(qc, return_M=True, print_M=False, shots=1000)
+        job = execute.exec_qcircuit(qc, 2000, 'sim', False, None, print_detail=False)
+        output = execute.get_output(job, 'sim')
 
         dists = [0 for _ in np.arange(self.cluster_num)]
         for item in output.items():
+            tmp_key = item[0][::-1]
+            tmp_val = item[1]
             for i in np.arange(self.cluster_num):
-                dists[i] += item[1] if item[0][i] == '0' else 0
+                dists[i] += tmp_val if tmp_key[i] == '0' else 0
         return dists.index(max(dists))
         # dists.sort(reverse=True)
         # if dists[0] - dists[1] < 10:
@@ -114,8 +119,8 @@ class QMeans:
         is_terminate = True
         for i in np.arange(self.cluster_num):
             for point in self.clusters[i]:
-                new_cluster_id = self.classical_find_optimal_cluster(point)
-                # new_cluster_id = self.find_optimal_cluster(point)
+                # new_cluster_id = self.classical_find_optimal_cluster(point)
+                new_cluster_id = self.find_optimal_cluster(point)
                 new_clusters[new_cluster_id].append(point)
                 if new_cluster_id != i:
                     is_terminate = False
@@ -132,48 +137,41 @@ class QMeans:
                 tmp_y += point[1]
             self.centroids[i] = [1.0 * tmp_x / len(self.clusters[i]), 1.0 * tmp_y / len(self.clusters[i])]
 
-    def main(self):
-        for _ in np.arange(self.iter_num):
+    def q_means(self):
+        for _ in range(self.iter_num):
             self.update_centroids()
-            # self.boundary = set()
             if self.update_clusters():
                 break
-            # print(_ + 1)
-            # colors = plt.cm.rainbow(np.linspace(0, 1, 22))
-            # for i in np.arange(22):
-            #     plt.scatter(self.centroids[i][0], self.centroids[i][1], color=colors[i], s=30, marker='x')
-            #     for point in self.clusters[i]:
-            #         plt.scatter(point[0], point[1], color=colors[i], s=5)
-            # plt.show()
 
         return [SingleCluster(self.centroids[i], self.clusters[i]) for i in range(self.cluster_num)]
 
 
 if __name__ == '__main__':
-    with open('../dataset/xqf131.tsp', 'r') as file:
-        lines = file.readlines()
-
-    lines = lines[8: -1]
+    lines = read_dataset('ulysses16.tsp', 16)
     points = []
     for line in lines:
         point = line.strip().split(' ')[1:]
         points.append([float(point[i]) for i in np.arange(len(point))])
 
-    test = QMeans(points, 22)
+    cluster_num = m.ceil(len(points) / 6)
+    clusters = QMeans(points, cluster_num).q_means()
+    i = 0
+    while i < len(clusters):
+        if clusters[i].element_num <= 6:
+            i += 1
+        else:
+            tmp_clusters = QMeans(clusters[i].elements, m.ceil(clusters[i].element_num / 6)).q_means()
+            del clusters[i]
+            clusters[i: i] = tmp_clusters
 
-    print('0')
-    colors = plt.cm.rainbow(np.linspace(0, 1, 22))
-    for i in np.arange(22):
-        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=colors[i], s=30, marker='x')
-        for point in test.clusters[i]:
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(clusters)))
+    for i, cluster in enumerate(clusters):
+        plt.scatter(cluster.centroid[0], cluster.centroid[1], color=colors[i], s=30, marker='x')
+        for point in cluster.elements:
             plt.scatter(point[0], point[1], color=colors[i], s=5)
     plt.show()
-
-    test.main()
-
-    colors = plt.cm.rainbow(np.linspace(0, 1, 22))
-    for i in np.arange(22):
-        plt.scatter(test.centroids[i][0], test.centroids[i][1], color=colors[i], s=30, marker='x')
-        for point in test.clusters[i]:
-            plt.scatter(point[0], point[1], color=colors[i], s=5)
-    plt.show()
+    print("The number of clusters: ", len(clusters))
+    print("The maximum number of points for all clusters: ", max([cluster.element_num for cluster in clusters]))
+    print("The minimum number of points for all clusters: ", min([cluster.element_num for cluster in clusters]))
+    print("The number of clusters which has only one point: ",
+          sum(1 for cluster in clusters if cluster.element_num == 1))

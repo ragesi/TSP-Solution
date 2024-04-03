@@ -1,23 +1,39 @@
 # -*- coding: UTF-8 -*-
-from qiskit import QuantumCircuit, Aer, execute
+from qiskit import transpile
 from qiskit_ibm_runtime import QiskitRuntimeService, Options, Sampler, Session
+from qiskit_aer import AerSimulator
+from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1, GenericBackendV2
 
 
-def local_simulator(qc, shots):
-    backend = Aer.backends(name='qasm_simulator')[0]
-    job = execute(qc, backend, shots=shots)
-    return job.result().get_counts()
+def exec_qcircuit(qc, shots, env, noisy, backend, print_detail=True):
+    if print_detail:
+        print("The circuit depth before transpile", qc.depth())
+
+    if env == 'sim':
+        if noisy:
+            device_backend = GenericBackendV2(qc.num_qubits)
+            simulator = AerSimulator.from_backend(device_backend)
+        else:
+            simulator = AerSimulator()
+        trans_qc = transpile(qc, simulator)
+        if print_detail:
+            print("The circuit depth after transpile", trans_qc.depth())
+        job = simulator.run(trans_qc, shots=shots)
+    else:
+        # real quantum computer
+        service = QiskitRuntimeService()
+        device_backend = service.backend(backend)
+        sampler = Sampler(backend=device_backend)
+        trans_qc = transpile(qc, device_backend)
+        if print_detail:
+            print("The circuit depth after transpile", trans_qc.depth())
+        job = sampler.run(circuits=trans_qc, shots=shots)
+    return job
 
 
-def sampler_run(backend, qc, shots, resilience_level=1, optimization_level=3):
-    service = QiskitRuntimeService()
-    backend = backend
-
-    options = Options()
-    options.resilience_level = resilience_level
-    options.optimization_level = optimization_level
-
-    sampler = Sampler(backend, options=options)
-    job = sampler.run(circuits=qc, shots=shots)
-
-    return job.result().quasi_dists[0]
+def get_output(job, env):
+    if env == 'sim':
+        output = job.result().get_counts()
+    else:
+        output = job.result().quasi_dists[0]
+    return output

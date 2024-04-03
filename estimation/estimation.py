@@ -3,7 +3,7 @@ import math as m
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-    with open('../dataset/pbn423.tsp', 'r') as file:
+    with open('../dataset/423/pbn423.tsp', 'r') as file:
         lines = file.readlines()
 
     point_dict = dict()

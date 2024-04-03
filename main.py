@@ -278,7 +278,7 @@ class TSPSolution:
 
 
 if __name__ == '__main__':
-    file_path = 'dataset/pbn423.tsp'
+    file_path = 'dataset/423/pbn423.tsp'
     test = TSPSolution()
     test.get_data(file_path)
     test.divide_sub_issue()
