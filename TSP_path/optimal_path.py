@@ -344,7 +344,7 @@ class OptimalPath:
         qc.measure(qram, cl)
 
         # remote_backend: 32, 63
-        shots = 1024
+        shots = 2000
         self.job = execute.exec_qcircuit(qc, shots, self.env, self.noisy, self.backend)
 
         self.async_grover()

@@ -4,6 +4,8 @@ import math as m
 from cluster import SingleCluster
 import matplotlib.pyplot as plt
 
+from dataset import test
+
 
 def cal_similarity(point1, point2):
     return m.sqrt(pow(point1[0] - point2[0], 2) + pow(point1[1] - point2[1], 2))
@@ -36,17 +38,13 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
     return min_len
 
 
-cycle_test_for_4 = [[15, 2],
-                    [7, 18],
-                    [13, 9],
-                    [1, 20],
-                    [15, 2], ]
+test_data = test.cycle_test_for_5
 
 cur_path = [0]
-optimal_path = [0 for _ in range(len(cycle_test_for_4))]
+optimal_path = [0 for _ in range(len(test_data))]
 threshold = 100000
-is_chosen = [False for _ in range(len(cycle_test_for_4))]
-threshold = find_optimal_path(cycle_test_for_4, cur_path, 0, optimal_path, threshold, is_chosen)
+is_chosen = [False for _ in range(len(test_data))]
+threshold = find_optimal_path(test_data, cur_path, 0, optimal_path, threshold, is_chosen)
 
 # x_values = [cycle_test_for_4[optimal_path[i]][0] for i in range(len(optimal_path))]
 # y_values = [cycle_test_for_4[optimal_path[i]][1] for i in range(len(optimal_path))]

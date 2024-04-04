@@ -1,0 +1,44 @@
+qram_num:  8
+buffer_num:  6
+anc_num:  5
+res_num:  3
+total_qubit_num:  22
+threshold:  42.0
+iter_num:  2.523900801022046
+The circuit depth before transpile 13
+The circuit depth after transpile 17028
+new_path:  [0, 2, 1, 3]
+new_threshold:  56.0
+grover repeat num:  10
+The circuit depth before transpile 13
+The circuit depth after transpile 17016
+new_path:  [3, 1, 2, 0]
+The circuit depth before transpile 18
+The circuit depth after transpile 25523
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 13
+The circuit depth after transpile 17016
+new_path:  [3, 1, 2, 0]
+The circuit depth before transpile 23
+The circuit depth after transpile 34030
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 23
+The circuit depth after transpile 34030
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 18
+The circuit depth after transpile 25523
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 28
+The circuit depth after transpile 42537
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 23
+The circuit depth after transpile 34030
+new_path:  [3, 1, 2, 0]
+The circuit depth before transpile 33
+The circuit depth after transpile 51044
+new_path:  [0, 2, 1, 3]
+The circuit depth before transpile 13
+The circuit depth after transpile 17016
+new_path:  [3, 1, 2, 0]
+time:  228.6432342529297
+[0, 1, 3, 2, 4, 5]

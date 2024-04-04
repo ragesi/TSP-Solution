@@ -1,0 +1,30 @@
+qram_num:  6
+buffer_num:  6
+anc_num:  5
+res_num:  3
+total_qubit_num:  20
+threshold:  25.0
+iter_num:  2.523900801022046
+The circuit depth before transpile 13
+The circuit depth after transpile 105600
+new_path:  [0, 3, 3]
+The circuit depth before transpile 13
+The circuit depth after transpile 105604
+new_path:  [3, 2, 3]
+The circuit depth before transpile 13
+The circuit depth after transpile 104588
+new_path:  [1, 2, 3]
+The circuit depth before transpile 23
+The circuit depth after transpile 210775
+new_path:  [3, 2, 2]
+The circuit depth before transpile 18
+The circuit depth after transpile 159897
+new_path:  [0, 2, 1]
+new_threshold:  47.0
+grover repeat num:  2
+The circuit depth before transpile 23
+The circuit depth after transpile 214173
+new_path:  [3, 1, 0]
+The circuit depth before transpile 33
+The circuit depth after transpile 315083
+这里可以看到如果一切正常的话，这一次运行完成整个程序就运行完成了
