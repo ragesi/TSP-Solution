@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-from utils import execute
+from utils import execute, inner_product
 from cluster import SingleCluster
 from utils.read_dataset import read_dataset
 import random
@@ -52,11 +52,17 @@ class QMeans:
             self.clusters[self.classical_find_optimal_cluster(point)].append(point)
 
     def init_range(self):
-        tmp_x = sorted([point[0] for point in self.points])
-        tmp_y = sorted([point[1] for point in self.points])
-        self.range = max(tmp_x[-1] - tmp_x[0], tmp_y[-1] - tmp_y[0])
-        self.x_range = [tmp_x[0], tmp_x[-1]]
-        self.y_range = [tmp_y[0], tmp_y[-1]]
+        min_x, max_x = min([point[0] for point in self.points]), max([point[0] for point in self.points])
+        min_y, max_y = min([point[1] for point in self.points]), max([point[1] for point in self.points])
+        self.range = max(max_x - min_x, max_y - min_y)
+        self.x_range = [min_x, max_x]
+        self.y_range = [min_y, max_y]
+
+        # tmp_x = sorted([point[0] for point in self.points])
+        # tmp_y = sorted([point[1] for point in self.points])
+        # self.range = max(tmp_x[-1] - tmp_x[0], tmp_y[-1] - tmp_y[0])
+        # self.x_range = [tmp_x[0], tmp_x[-1]]
+        # self.y_range = [tmp_y[0], tmp_y[-1]]
 
     def to_bloch_state(self, point):
         """
@@ -71,6 +77,9 @@ class QMeans:
 
         return theta, phi
 
+    def normalization(self, point):
+        return [(point[0] - self.x_range[0]) / self.range, (point[1] - self.y_range[0]) / self.range]
+
     def classical_find_optimal_cluster(self, point):
         min_dist = 1000
         min_id = -1
@@ -82,37 +91,13 @@ class QMeans:
         return min_id
 
     def find_optimal_cluster(self, point):
-        q = QuantumRegister(self.cluster_num * 3)
-        cl = ClassicalRegister(self.cluster_num)
-        qc = QuantumCircuit(q, cl)
-
-        point_theta, point_phi = self.to_bloch_state(point)
+        # normalization
+        base_vec = self.normalization(point)
+        cur_vec_list = list()
         for i in range(self.cluster_num):
-            qc.u(point_theta, point_phi, 0, q[i * 3 + 1])
-            cent_theta, cent_phi = self.to_bloch_state(self.centroids[i])
-            qc.u(cent_theta, cent_phi, 0, q[i * 3 + 2])
+            cur_vec_list.append(self.normalization(self.centroids[i]))
 
-            qc.h(q[i * 3])
-            qc.cswap(q[i * 3], q[i * 3 + 1], q[i * 3 + 2])
-            qc.h(q[i * 3])
-
-        for i in np.arange(self.cluster_num):
-            qc.measure(q[i * 3], cl[i])
-
-        job = execute.exec_qcircuit(qc, 2000, 'sim', False, None, print_detail=False)
-        output = execute.get_output(job, 'sim')
-
-        dists = [0 for _ in np.arange(self.cluster_num)]
-        for item in output.items():
-            tmp_key = item[0][::-1]
-            tmp_val = item[1]
-            for i in np.arange(self.cluster_num):
-                dists[i] += tmp_val if tmp_key[i] == '0' else 0
-        return dists.index(max(dists))
-        # dists.sort(reverse=True)
-        # if dists[0] - dists[1] < 10:
-        #     self.boundary.add(tuple(point))
-        # return res_index
+        return inner_product.get_max_inner_product(base_vec, cur_vec_list)
 
     def update_clusters(self):
         new_clusters = [[] for _ in np.arange(self.cluster_num)]
@@ -147,7 +132,7 @@ class QMeans:
 
 
 if __name__ == '__main__':
-    lines = read_dataset('ulysses16.tsp', 16)
+    lines = read_dataset('ulysses22.tsp', 22)
     points = []
     for line in lines:
         point = line.strip().split(' ')[1:]

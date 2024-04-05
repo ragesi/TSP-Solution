@@ -39,7 +39,7 @@ def build_adj_matrix(points, point_num):
     adj_matrix = np.zeros((point_num, point_num))
     for i in range(point_num):
         for j in range(i + 1, point_num):
-            adj_matrix[i][j] = adj_matrix[j][i] = np.linalg.norm(points[i] - points[j])
+            adj_matrix[i][j] = adj_matrix[j][i] = np.linalg.norm(np.array(points[i]) - np.array(points[j]))
     # transfer to gussian
     adj_matrix = build_gussian_adj(adj_matrix, point_num)
     # enlarge all elements from the range of [0, 1] to [0, 10]
@@ -68,7 +68,7 @@ def build_deg_matrix(adj_matrix, point_num):
     return deg_matrix
 
 
-def amplify_deg_matrix(deg_matrix, point_num):
+def scaling_up_deg_matrix(deg_matrix, point_num):
     """
     Amplify degree to distinguish each of them
     :param point_num: int
@@ -81,29 +81,37 @@ def amplify_deg_matrix(deg_matrix, point_num):
     return large_deg_matrix
 
 
-def normalize_deg_matrix(deg_matrix, precision, point_num):
-    """
-    Normalize degree to the multiple of 2
-    :param precision: int, the precision of the QPE algorithm
-    :param deg_matrix: numpy array
-    :param point_num: int
-    :return: list
-    """
-    norm_deg_matrix = list()
+# def scaling_down_deg_matrix(deg_matrix, precision, point_num):
+#     """
+#     Normalize degree to the multiple of 2
+#     :param precision: int, the precision of the QPE algorithm
+#     :param deg_matrix: numpy array
+#     :param point_num: int
+#     :return: list
+#     """
+#     norm_deg_matrix = list()
+#     sum_deg = sum(deg_matrix)
+#     for i in range(point_num):
+#         tmp_ele = max(round(deg_matrix[i] / sum_deg * (2 ** (precision - 1))), 1)
+#         tmp_ele /= (2 ** precision)
+#         norm_deg_matrix.append(tmp_ele)
+#     return norm_deg_matrix
+
+
+def scaling_down_deg_matrix(deg_matrix, max_sum, point_num):
+    small_deg_matrix = list()
     sum_deg = sum(deg_matrix)
     for i in range(point_num):
-        tmp_ele = max(round(deg_matrix[i] / sum_deg * (2 ** (precision - 1))), 1)
-        tmp_ele /= (2 ** precision)
-        norm_deg_matrix.append(tmp_ele)
-    return norm_deg_matrix
+        small_deg_matrix.append(deg_matrix[i] / sum_deg * max_sum)
+    return small_deg_matrix
 
 
-def qpe(precision, norm_deg_matrix, point_num):
+def qpe(precision, small_deg_matrix, point_num):
     """
     Use the QPE algorithm to determine
     whether the sum of degree in cluster 0 is larger than the sum of degree in cluster 1
     :param precision:
-    :param norm_deg_matrix:
+    :param small_deg_matrix:
     :param point_num:
     :return:
     """
@@ -120,7 +128,7 @@ def qpe(precision, norm_deg_matrix, point_num):
             qc.ccx(qram[i], eigen_val[j], anc[0])
 
             for _ in range(2 ** (precision - j - 1)):
-                qc.cp(2 * m.pi * norm_deg_matrix[i], anc[0], eigen_vec[0])
+                qc.cp(2 * m.pi * small_deg_matrix[i], anc[0], eigen_vec[0])
 
             qc.ccx(qram[i], eigen_val[j], anc[0])
 
@@ -128,9 +136,13 @@ def qpe(precision, norm_deg_matrix, point_num):
             qc.x(qram[i])
             qc.ccx(qram[i], eigen_val[j], anc[0])
             for _ in range(2 ** (precision - j - 1)):
-                qc.cp(-2 * m.pi * norm_deg_matrix[i], anc[0], eigen_vec[0])
+                qc.cp(-2 * m.pi * small_deg_matrix[i], anc[0], eigen_vec[0])
             qc.ccx(qram[i], eigen_val[j], anc[0])
             qc.x(qram[i])
+
+    for j in range(precision - 1, -1, -1):
+        for _ in range(2 ** (precision - j - 1)):
+            qc.p(2 * m.pi * 0.25, eigen_val[j])
 
     qc.append(lib.QFT(precision, do_swaps=False, inverse=True), eigen_val)
 

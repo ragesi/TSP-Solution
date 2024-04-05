@@ -9,22 +9,22 @@ from utils import execute, read_dataset
 
 
 class QAOACut:
-    def __init__(self, points, theta, lamda, precision):
+    def __init__(self, points, theta, lamda, max_sum):
         self.points = points
         self.point_num = len(self.points)
         self.adj_matrix = prep.build_adj_matrix(self.points, self.point_num)
         deg_matrix = prep.build_deg_matrix(self.adj_matrix, self.point_num)
-        self.deg_matrix = prep.amplify_deg_matrix(deg_matrix, self.point_num)
-        self.norm_deg_matrix = prep.normalize_deg_matrix(deg_matrix, self.point_num)
+        self.deg_matrix = prep.scaling_up_deg_matrix(deg_matrix, self.point_num)
+        self.norm_deg_matrix = prep.scaling_down_deg_matrix(deg_matrix, max_sum, self.point_num)
 
         self.theta = theta
         self.lamda = lamda
-        self.precision = precision
         self.min_theta = self.theta
 
+        self.precision = 1
         self.step = 0.01
         self.epsilon = 0.001
-        self.delta = 0.005
+        self.delta = 0.001
 
     def phase_gate(self, gamma):
         qram = QuantumRegister(self.point_num)
@@ -44,13 +44,13 @@ class QAOACut:
         # The constraint of cut
         qc.append(prep.qpe(self.precision, self.norm_deg_matrix, self.point_num), [*qram, *eigen_vec, *eigen_val, *anc])
 
-        # If the highest qubit of eigen_val is 1, the result is negative
-        for i in range(self.point_num):
-            qc.crz(gamma * self.lamda * self.deg_matrix[i], eigen_val[-1], qram[i])
-        # Else if the highest qubit is 0, the result is positive
-        qc.x(eigen_val[-1])
+        # If the highest qubit of eigen_val is 1, the result is positive
         for i in range(self.point_num):
             qc.crz(-1 * gamma * self.lamda * self.deg_matrix[i], eigen_val[-1], qram[i])
+        # Else if the highest qubit is 0, the result is negative
+        qc.x(eigen_val[-1])
+        for i in range(self.point_num):
+            qc.crz(gamma * self.lamda * self.deg_matrix[i], eigen_val[-1], qram[i])
         qc.x(eigen_val[-1])
 
         return qc
@@ -137,6 +137,9 @@ class QAOACut:
         i = 0
         s = 0
         while i < 100 and abs(energy - energy_old) > self.delta:
+            if s > 0:
+                # optimize theta
+                self.gradient_descent()
             qc = self.qaoa()
 
             energy_old = energy
@@ -146,9 +149,6 @@ class QAOACut:
                 self.min_theta = self.theta
             s += 1
             print(s, '-th step, F: ', energy, ' theta: ', self.theta)
-
-            # optimize theta
-            self.gradient_descent()
 
             # reduce the step size
             if self.step > 0.001:
@@ -169,5 +169,10 @@ if __name__ == '__main__':
     theta = list()
     for _ in range(4):
         theta.append(2 * m.pi * random.random())
+    lamda = 6
+    max_sum = 0.25
 
-    test = QAOACut(points, theta)
+    test = QAOACut(points, theta, lamda, max_sum)
+    test.main()
+    print("min_theta: ", test.min_theta)
+    print("theta: ", test.theta)
