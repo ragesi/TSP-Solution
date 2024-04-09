@@ -42,7 +42,7 @@ class OptimalPath:
         # the precision of route distance
         self.precision = precision
         self.buffer_num = max(self.precision, self.step_num)
-        self.anc_num = max(self.precision - 1, self.step_num - 2)
+        self.anc_num = max(max(self.precision - 1, self.step_num - 2), 3)
         self.res_num = 3
         self.total_qubit_num = self.qram_num + self.buffer_num + self.anc_num + self.res_num
 
@@ -334,10 +334,10 @@ class OptimalPath:
         for _ in range(cur_iter_num):
             qc.append(qc_start, [i for i in range(self.total_qubit_num)])
             qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True),
-                      [*buffer, res[1], *anc[:self.precision - 1]])
+                      [*buffer[:self.precision], res[1], *anc[:self.precision - 1]])
             qc.ccx(res[0], res[1], res[-1])
             qc.append(lib.IntegerComparator(self.precision, self.threshold, geq=True).inverse(),
-                      [*buffer, res[1], *anc[:self.precision - 1]])
+                      [*buffer[:self.precision], res[1], *anc[:self.precision - 1]])
             qc.append(qc_end, [i for i in range(self.total_qubit_num)])
 
         # print("depth: ", qc.depth())

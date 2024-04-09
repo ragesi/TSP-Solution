@@ -54,6 +54,22 @@ threshold = find_optimal_path(test_data, cur_path, 0, optimal_path, threshold, i
 print(optimal_path)
 print(threshold)
 
+for i in range(1, 5):
+    for j in range(1, 5):
+        if i == j:
+            continue
+        for k in range(1, 5):
+            if i == k or j == k:
+                continue
+            for x in range(1, 5):
+                if i == x or j == x or k == x:
+                    continue
+                res = cal_similarity(test_data[0], test_data[i]) + cal_similarity(test_data[i],
+                                                                                  test_data[j]) + cal_similarity(
+                    test_data[j], test_data[k]) + cal_similarity(test_data[k], test_data[x]) + cal_similarity(
+                    test_data[x], test_data[0])
+                print('[0, ', i, ', ', j, ', ', k, ', ', x, ', 0]: ', res)
+
 
 def find_diff_clusters_connector(cluster_1, cluster_2):
     points_1 = cluster_1.get_nodes_in_path()
