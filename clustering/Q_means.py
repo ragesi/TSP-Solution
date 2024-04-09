@@ -1,4 +1,7 @@
 # -*- coding: UTF-8 -*-
+import argparse
+import sys
+
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit_ibm_runtime import QiskitRuntimeService, Session, Sampler, Options
 from qiskit_aer import AerSimulator
@@ -7,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
+sys.path.append("..")
 from utils import execute, inner_product
 from cluster import SingleCluster
 from utils.read_dataset import read_dataset
@@ -132,6 +136,16 @@ class QMeans:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Optimize path')
+    parser.add_argument('--scale', '-s', type=int, default=3, help='The number of nodes in TSP graph')
+    parser.add_argument('--precision', '-p', type=int, default=6, help='The precision of the QPE process')
+    parser.add_argument('--env', '-e', type=str, default='sim',
+                        help='The environment to run program, parameter: "sim"; "remote_sim"; "real"')
+    parser.add_argument('--backend', '-b', type=str, default=None, help='The backend to run program')
+    parser.add_argument('--noisy', '-n', type=bool, default=False, help='determining whether to add noisy')
+
+    args = parser.parse_args()
+
     lines = read_dataset('ulysses22.tsp', 22)
     points = []
     for line in lines:
