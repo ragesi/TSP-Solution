@@ -20,47 +20,72 @@ def to_bloch_state(vec):
     return theta, phi
 
 
-def cal_inner_product(base_vec, cur_vec_list, max_qubit_num=30):
-    vec_num = len(cur_vec_list)
-    if (vec_num * 3) > max_qubit_num:
-        raise ValueError("Too many vectors!")
+def cal_inner_product(vec_list_1, vec_list_2, env, backend):
+    num_1 = len(vec_list_1)
+    num_2 = len(vec_list_2)
 
-    q = QuantumRegister(vec_num * 3)
-    cl = ClassicalRegister(vec_num)
+    q = QuantumRegister(num_1 * num_2 * 3)
+    cl = ClassicalRegister(num_1 * num_2)
     qc = QuantumCircuit(q, cl)
 
-    base_theta, base_phi = to_bloch_state(base_vec)
-    for i in range(vec_num):
-        qc.u(base_theta, base_phi, 0, q[i * 3 + 1])
-        cur_theta, cur_phi = to_bloch_state(cur_vec_list[i])
-        qc.u(cur_theta, cur_phi, 0, q[i * 3 + 2])
+    for i in range(num_1):
+        theta_1, phi_1 = to_bloch_state(vec_list_1[i])
+        for j in range(num_2):
+            theta_2, phi_2 = to_bloch_state(vec_list_2[j])
 
-        qc.h(q[i * 3])
-        qc.cswap(q[i * 3], q[i * 3 + 1], q[i * 3 + 2])
-        qc.h(q[i * 3])
+            qc.u(theta_1, phi_1, 0, q[i * (num_2 * 3) + j * 3 + 1])
+            qc.u(theta_2, phi_2, 0, q[i * (num_2 * 3) + j * 3 + 2])
 
-    for i in range(vec_num):
-        qc.measure(q[i * 3], cl[i])
+            qc.h(q[i * (num_2 * 3) + j * 3])
+            qc.cswap(q[i * (num_2 * 3) + j * 3], q[i * (num_2 * 3) + j * 3 + 1], q[i * (num_2 * 3) + j * 3 + 2])
+            qc.h(q[i * (num_2 * 3) + j * 3])
 
-    job = execute.exec_qcircuit(qc, 20000, 'sim', False, None, False)
-    output = execute.get_output(job, 'sim')
+            qc.measure(q[i * (num_2 * 3) + j * 3], cl[i * num_2 + j])
 
-    output_dict = dict()
+    # base_theta, base_phi = to_bloch_state(vec_list_1)
+    # for i in range(num_2):
+    #     qc.u(base_theta, base_phi, 0, q[i * 3 + 1])
+    #     cur_theta, cur_phi = to_bloch_state(vec_list_2[i])
+    #     qc.u(cur_theta, cur_phi, 0, q[i * 3 + 2])
+    #
+    #     qc.h(q[i * 3])
+    #     qc.cswap(q[i * 3], q[i * 3 + 1], q[i * 3 + 2])
+    #     qc.h(q[i * 3])
+    #
+    # for i in range(num_2):
+    #     qc.measure(q[i * 3], cl[i])
+
+    job = execute.exec_qcircuit(qc, 20000, env, False, backend, False)
+    return job
+    # output = execute.get_output(job, env)
+    #
+    # output_dict = dict()
+    # for item in output.items():
+    #     output_dict[item[0][::-1]] = item[1]
+    #
+    # return output_dict
+
+
+def get_max_inner_product(job, num_1, num_2, env):
+    output = execute.get_output(job, env)
+
+    values = [0 for _ in range(num_1 * num_2)]
     for item in output.items():
-        output_dict[item[0][::-1]] = item[1]
+        tmp_key = item[0][::-1]
+        for i in range(num_1 * num_2):
+            values[i] += item[1] if tmp_key[i] == '0' else 0
 
-    return output_dict
+    res = list()
+    for i in range(num_1):
+        res.append(values[i * num_2: (i + 1) * num_2].index(max(values[i * num_2: (i + 1) * num_2])))
+    return res
 
-
-def get_max_inner_product(base_vec, cur_vec_list, max_qubit_num=30):
-    output = cal_inner_product(base_vec, cur_vec_list, max_qubit_num)
-
-    vec_num = len(cur_vec_list)
-    res = [0 for _ in range(vec_num)]
-    for item in output.items():
-        for i in range(vec_num):
-            res[i] += item[1] if item[0][i] == '0' else 0
-    return res.index(max(res))
+    # res = [0 for _ in range(vec_num)]
+    # for item in output.items():
+    #     tmp_key = item[0][::-1]
+    #     for i in range(vec_num):
+    #         res[i] += item[1] if tmp_key[i] == '0' else 0
+    # return res.index(max(res))
 
 
 if __name__ == '__main__':

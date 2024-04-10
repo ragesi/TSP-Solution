@@ -377,10 +377,8 @@ if __name__ == '__main__':
     parser.add_argument('--noisy', '-n', type=bool, default=False, help='determining whether to add noisy')
 
     args = parser.parse_args()
-    print(args.noisy)
-    # 判断输入是否合法
-    if args.scale < 3 or args.scale > 9:
-        raise ValueError('The scale must be between 3 and 9')
+    if args.scale < 3 or args.scale > 7:
+        raise ValueError('The scale must be between 3 and 7')
     if args.env != 'sim' and args.env != 'remote_sim' and args.env != 'real':
         raise ValueError('The environment must be either "sim" or "remote_sim" or "real"!')
     if args.env == 'remote_sim' and args.backend != 'ibmq_qasm_simulator' and args.backend != 'simulator_extended_stabilizer':
