@@ -8,6 +8,7 @@ from qiskit_aer import AerSimulator
 from qiskit.providers.fake_provider import Fake27QPulseV1, Fake127QPulseV1
 import numpy as np
 import matplotlib
+
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
@@ -18,13 +19,13 @@ from cluster import SingleCluster
 from utils.read_dataset import read_dataset
 import random
 import math as m
+import copy
 
 
 class Job:
-    def __init__(self, job, vec_num_1, vec_num_2):
+    def __init__(self, job, range_2):
         self.job = job
-        self.vec_num_1 = vec_num_1
-        self.vec_num_2 = vec_num_2
+        self.range_2 = range_2
 
 
 class QMeans:
@@ -111,35 +112,52 @@ class QMeans:
         return min_id
 
     def find_optimal_cluster(self, points):
-        qubit_num_for_single_point = self.cluster_num * 3
-        point_num_in_single_circuit = self.max_qubit_num // qubit_num_for_single_point
-        circuit_num = m.ceil(len(points) / point_num_in_single_circuit)
-        new_cluster_id_list = list()
+        task_num_per_circuit = self.max_qubit_num // 3
 
+        vec_list_2 = [self.normalization(centroid) for centroid in self.centroids]
         jobs = list()
-        for i in range(circuit_num):
-            if i % 3 == 0 and i != 0:
-                for job in jobs:
-                    new_cluster_id_list += inner_product.get_max_inner_product(job.job, job.vec_num_1, job.vec_num_2,
-                                                                               self.env)
-                jobs.clear()
+        output = list()
+        vec_list_1 = list()
+        start_idx = 0
+        cur_cal_num = task_num_per_circuit
+        range_2 = list()
+        for point in points:
+            norm_point = self.normalization(point)
+            for i in range(self.cluster_num):
+                if cur_cal_num > 0:
+                    cur_cal_num -= 1
+                else:
+                    cur_cal_num = task_num_per_circuit - 1
+                    range_2.append([start_idx, i])
+                    start_idx = i
+                    vec_list_1.append(norm_point)
 
-            # normalization
-            vec_list_2 = [self.normalization(centroid) for centroid in self.centroids]
-            remainder = len(points) % point_num_in_single_circuit
-            if i < circuit_num - 1 or remainder == 0:
-                vec_list_1 = [self.normalization(points[i]) for i in
-                              range(i * point_num_in_single_circuit, (i + 1) * point_num_in_single_circuit)]
-                jobs.append(Job(inner_product.cal_inner_product(vec_list_1, vec_list_2, self.env, self.backend),
-                                point_num_in_single_circuit, self.cluster_num))
-            else:
-                vec_list_1 = [self.normalization(points[i]) for i in
-                              range(i * point_num_in_single_circuit, i * point_num_in_single_circuit + remainder)]
-                jobs.append(Job(inner_product.cal_inner_product(vec_list_1, vec_list_2, self.env, self.backend),
-                                remainder, self.cluster_num))
+                    jobs.append(inner_product.cal_inner_product(vec_list_1, vec_list_2, range_2, task_num_per_circuit,
+                                                                self.env, self.backend))
 
+                    vec_list_1.clear()
+                    range_2.clear()
+
+                    # when the number of jobs that is in queue reaches 3, waiting for these jobs to finish
+                    if len(jobs) >= 3:
+                        for job in jobs:
+                            output += inner_product.get_inner_product_result(job, self.env)
+
+                        jobs.clear()
+
+            vec_list_1.append(norm_point)
+            range_2.append([start_idx, self.cluster_num])
+            start_idx = 0
+
+        jobs.append(inner_product.cal_inner_product(vec_list_1, vec_list_2, range_2, task_num_per_circuit, self.env,
+                                                    self.backend))
         for job in jobs:
-            new_cluster_id_list += inner_product.get_max_inner_product(job.job, job.vec_num_1, job.vec_num_2, self.env)
+            output += inner_product.get_inner_product_result(job, self.env)
+
+        new_cluster_id_list = list()
+        for i in range(len(points)):
+            new_cluster_id_list.append(output[i * self.cluster_num: (i + 1) * self.cluster_num].index(
+                max(output[i * self.cluster_num: (i + 1) * self.cluster_num])))
 
         return new_cluster_id_list
 
@@ -191,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', '-e', type=str, default='sim',
                         help='The environment to run program, parameter: "sim"; "remote_sim"; "real"')
     parser.add_argument('--backend', '-b', type=str, default=None, help='The backend to run program')
-    parser.add_argument('--max_qubit_num', '-m', type=int, default=29,
+    parser.add_argument('--max_qubit_num', '-m', type=int, default=15,
                         help='The maximum number of qubits in the backend')
 
     args = parser.parse_args()

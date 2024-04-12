@@ -20,27 +20,26 @@ def to_bloch_state(vec):
     return theta, phi
 
 
-def cal_inner_product(vec_list_1, vec_list_2, env, backend):
-    num_1 = len(vec_list_1)
-    num_2 = len(vec_list_2)
-
-    q = QuantumRegister(num_1 * num_2 * 3)
-    cl = ClassicalRegister(num_1 * num_2)
+def cal_inner_product(vec_list_1, vec_list_2, range_2, task_num_per_circuit, env, backend):
+    q = QuantumRegister(task_num_per_circuit * 3)
+    cl = ClassicalRegister(task_num_per_circuit)
     qc = QuantumCircuit(q, cl)
 
-    for i in range(num_1):
-        theta_1, phi_1 = to_bloch_state(vec_list_1[i])
-        for j in range(num_2):
-            theta_2, phi_2 = to_bloch_state(vec_list_2[j])
+    bloch_state_1 = [to_bloch_state(vec) for vec in vec_list_1]
+    bloch_state_2 = [to_bloch_state(vec) for vec in vec_list_2]
+    task_idx = 0
+    for i in range(len(vec_list_1)):
+        for j in range(range_2[i][0], range_2[i][1]):
+            qc.u(bloch_state_1[i][0], bloch_state_1[i][1], 0, q[task_idx * 3 + 1])
+            qc.u(bloch_state_2[j][0], bloch_state_2[j][1], 0, q[task_idx * 3 + 2])
 
-            qc.u(theta_1, phi_1, 0, q[i * (num_2 * 3) + j * 3 + 1])
-            qc.u(theta_2, phi_2, 0, q[i * (num_2 * 3) + j * 3 + 2])
+            qc.h(q[task_idx * 3])
+            qc.cswap(q[task_idx * 3], q[task_idx * 3 + 1], q[task_idx * 3 + 2])
+            qc.h(q[task_idx * 3])
 
-            qc.h(q[i * (num_2 * 3) + j * 3])
-            qc.cswap(q[i * (num_2 * 3) + j * 3], q[i * (num_2 * 3) + j * 3 + 1], q[i * (num_2 * 3) + j * 3 + 2])
-            qc.h(q[i * (num_2 * 3) + j * 3])
+            qc.measure(q[task_idx * 3], cl[task_idx])
 
-            qc.measure(q[i * (num_2 * 3) + j * 3], cl[i * num_2 + j])
+            task_idx += 1
 
     # base_theta, base_phi = to_bloch_state(vec_list_1)
     # for i in range(num_2):
@@ -66,19 +65,22 @@ def cal_inner_product(vec_list_1, vec_list_2, env, backend):
     # return output_dict
 
 
-def get_max_inner_product(job, num_1, num_2, env):
+def get_inner_product_result(job, env):
     output = execute.get_output(job, env)
+    task_num = len(next(iter(output)))
 
-    values = [0 for _ in range(num_1 * num_2)]
+    values = [0 for _ in range(task_num)]
     for item in output.items():
         tmp_key = item[0][::-1]
-        for i in range(num_1 * num_2):
+        for i in range(task_num):
             values[i] += item[1] if tmp_key[i] == '0' else 0
 
-    res = list()
-    for i in range(num_1):
-        res.append(values[i * num_2: (i + 1) * num_2].index(max(values[i * num_2: (i + 1) * num_2])))
-    return res
+    return values
+
+    # res = list()
+    # for i in range(num_1):
+    #     res.append(values[i * num_2: (i + 1) * num_2].index(max(values[i * num_2: (i + 1) * num_2])))
+    # return res
 
     # res = [0 for _ in range(vec_num)]
     # for item in output.items():
