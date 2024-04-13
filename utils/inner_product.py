@@ -1,17 +1,7 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from utils import execute
+from utils import execute, util
 
 import math as m
-
-
-def get_vec_range(vec_list):
-    min_x = min([vec[0] for vec in vec_list])
-    max_x = max([vec[0] for vec in vec_list])
-    min_y = min([vec[1] for vec in vec_list])
-    max_y = max([vec[1] for vec in vec_list])
-
-    max_range = max(max_x - min_x, max_y - min_y)
-    return max_range, min_x, min_y
 
 
 def to_bloch_state(vec):
@@ -65,14 +55,16 @@ def cal_inner_product(vec_list_1, vec_list_2, range_2, task_num_per_circuit, env
     # return output_dict
 
 
-def get_inner_product_result(job, env):
+def get_inner_product_result(job, task_num_per_circuit, env):
     output = execute.get_output(job, env)
-    task_num = len(next(iter(output)))
 
-    values = [0 for _ in range(task_num)]
+    values = [0 for _ in range(task_num_per_circuit)]
     for item in output.items():
-        tmp_key = item[0][::-1]
-        for i in range(task_num):
+        tmp_key = item[0]
+        if env != 'sim':
+            tmp_key = util.int_to_binary(item[0], task_num_per_circuit)
+        tmp_key = tmp_key[::-1]
+        for i in range(task_num_per_circuit):
             values[i] += item[1] if tmp_key[i] == '0' else 0
 
     return values

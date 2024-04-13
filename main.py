@@ -1,3 +1,6 @@
+import argparse
+import sys
+
 import math as m
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,8 +8,9 @@ from sklearn.cluster import SpectralClustering
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial import ConvexHull, QhullError
 
-from clustering.Q_means import QMeans
+from clustering import Q_means
 from cluster import SingleCluster, MultiCluster, cal_similarity
+from utils.read_dataset import read_dataset
 
 
 def spectral_clustering(points, cluster_num):
@@ -41,41 +45,40 @@ def cal_dist_point_to_line(point, line_start, line_end):
 
 
 class TSPSolution:
-    def __init__(self):
+    def __init__(self, file_name, point_num, env, backend, max_qubit_num):
         self.points = []
-        self.point_num = 0
+        self.point_num = point_num
         self.point_map = dict()
         self.path = []
 
         self.sub_issue_max_size = 6
-        self.max_qubit_num = 27
+        self.max_qubit_num = max_qubit_num
 
         self.x_bounds = [10000, 0]
         self.y_bounds = [10000, 0]
 
-    def get_data(self, file_path):
-        with open(file_path, 'r') as file:
-            lines = file.readlines()
+        self.env = env
+        self.backend = backend
 
-        lines = lines[8: -1]
+        self.file_name = file_name
+
+    def get_data(self):
+        lines = read_dataset(self.file_name, self.point_num)
         for line in lines:
-            tmp_point = line.strip().split(' ')
-            tmp_point = [float(x) for x in tmp_point]
-            tmp_point[0] = int(tmp_point[0])
-            tmp_tuple = (tmp_point[1], tmp_point[2])
-            self.points.append(tmp_tuple)
-            self.point_map[tmp_tuple] = tmp_point[0]
-            # 确定x和y的边界
-            if tmp_point[1] < self.x_bounds[0]:
-                self.x_bounds[0] = tmp_point[1]
-            if tmp_point[1] > self.x_bounds[1]:
-                self.x_bounds[1] = tmp_point[1]
-            if tmp_point[2] < self.y_bounds[0]:
-                self.y_bounds[0] = tmp_point[2]
-            if tmp_point[2] > self.y_bounds[1]:
-                self.y_bounds[1] = tmp_point[2]
+            point = line.strip().split(' ')
+            point = [int(point[0]), float(point[1]), float(point[2])]
+            self.points.append((point[1], point[2]))
+            self.point_map[(point[1], point[2])] = point[0]
+
+            if point[1] < self.x_bounds[0]:
+                self.x_bounds[0] = point[1]
+            if point[1] > self.x_bounds[1]:
+                self.x_bounds[1] = point[1]
+            if point[2] < self.y_bounds[0]:
+                self.y_bounds[0] = point[2]
+            if point[2] > self.y_bounds[1]:
+                self.y_bounds[1] = point[2]
         print(f"x_bound: {self.x_bounds}, y_bound: {self.y_bounds}")
-        self.point_num = len(self.points)
 
     @staticmethod
     def find_diff_clusters_connector(cluster_1, cluster_2):
@@ -121,34 +124,26 @@ class TSPSolution:
 
         # 第一次聚类，之后处理的最小粒度从数据点变成聚类中心点
         # 改成谱聚类
-        split_cluster_num = m.ceil(1.0 * len(self.points) / 6)
-        self.path = spectral_clustering(np.array(self.points), split_cluster_num)
-        i = 0
-        while i < len(self.path):
-            if len(self.path[i]) > 6:
-                # 需要再次划分
-                split_cluster_num = m.ceil(1.0 * len(self.path[i]) / 6)
-                self.path[i: i + 1] = spectral_clustering(np.array(self.path[i]), split_cluster_num)
-            else:
-                # 计算聚类中心点
-                tmp_centroid = [1.0 * sum(point[0] for point in self.path[i]) / len(self.path[i]),
-                                1.0 * sum(point[1] for point in self.path[i]) / len(self.path[i])]
-                self.path[i] = SingleCluster(tmp_centroid, self.path[i])
-                i += 1
-        print(len(self.path))
-
-        # k-means聚类
         # split_cluster_num = m.ceil(1.0 * len(self.points) / 6)
-        # self.path = QMeans(self.points, split_cluster_num).main()
+        # self.path = spectral_clustering(np.array(self.points), split_cluster_num)
         # i = 0
         # while i < len(self.path):
-        #     if self.path[i].get_point_num() > 6:
+        #     if len(self.path[i]) > 6:
         #         # 需要再次划分
-        #         split_cluster_num = m.ceil(1.0 * self.path[i].get_point_num() / 6)
-        #         self.path[i: i + 1] = QMeans(self.path[i].get_nodes_in_path(), split_cluster_num).main()
+        #         split_cluster_num = m.ceil(1.0 * len(self.path[i]) / 6)
+        #         self.path[i: i + 1] = spectral_clustering(np.array(self.path[i]), split_cluster_num)
         #     else:
+        #         # 计算聚类中心点
+        #         tmp_centroid = [1.0 * sum(point[0] for point in self.path[i]) / len(self.path[i]),
+        #                         1.0 * sum(point[1] for point in self.path[i]) / len(self.path[i])]
+        #         self.path[i] = SingleCluster(tmp_centroid, self.path[i])
         #         i += 1
         # print(len(self.path))
+
+        # k-means聚类
+        split_cluster_num = self.point_num // self.sub_issue_max_size
+        self.path = Q_means.divide_clusters(self.points, split_cluster_num, self.env, self.backend, self.max_qubit_num)
+        print(len(self.path))
 
         # 绘制
         cluster_num = len(self.path)
@@ -161,9 +156,13 @@ class TSPSolution:
         plt.show()
 
         # 多次合并互为最近邻的聚类
-        is_terminal = False
-        while (not is_terminal) and len(self.path) > 10:
-            is_terminal = True
+        while len(self.path) > self.sub_issue_max_size:
+            # min_len = 1000000
+            # merge_1 = -1
+            # merge_2 = -1
+            # for i in range(len(self.path)):
+            #     for j in range(i + 1, len(self.path)):
+            #
 
             neighbors = [0 for _ in range(len(self.path))]
             for i in range(len(self.path)):
@@ -182,7 +181,6 @@ class TSPSolution:
             for i in range(len(self.path)):
                 for j in range(i + 1, len(self.path)):
                     if neighbors[i] == j and neighbors[j] == i:
-                        is_terminal = False
                         self.path[i] = MultiCluster(None, [self.path[i], self.path[j]])
                         self.path[i].cal_centroid()
                         delete_index.append(j)
@@ -278,6 +276,17 @@ class TSPSolution:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='QACSA')
+    parser.add_argument('--file_name', '-f', type=str, default='ulysses16.tsp', help='Dataset of TSP')
+    parser.add_argument('--scale', '-s', type=int, default=16, help='The scale of dataset')
+    parser.add_argument('--env', '-e', type=str, default='sim',
+                        help='The environment to run program, parameter: "sim"; "remote_sim"; "real"')
+    parser.add_argument('--backend', '-b', type=str, default=None, help='The backend to run program')
+    parser.add_argument('--max_qubit_num', '-m', type=int, default=15,
+                        help='The maximum number of qubits in the backend')
+
+    args = parser.parse_args()
+
     file_path = 'dataset/423/pbn423.tsp'
     test = TSPSolution()
     test.get_data(file_path)
