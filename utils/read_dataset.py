@@ -2,7 +2,7 @@ def read_dataset(file_name, scale):
     file_path = '../dataset/' + str(scale) + '/' + file_name
     with open(file_path, 'r') as file:
         lines = file.readlines()
-    lines = [line[:-1] for line in lines]
+    # lines = [line[:-1] for line in lines]
 
     # finding the start of points
     i = 0

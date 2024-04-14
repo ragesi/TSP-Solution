@@ -29,7 +29,7 @@ class Job:
 
 
 class QMeans:
-    def __init__(self, points, cluster_num, env, backend, max_qubit_num):
+    def __init__(self, points, cluster_num, env, backend, max_qubit_num, print_detail=False):
         """
         :param points: node list
         :param cluster_num: the number of clusters that need to divide
@@ -42,14 +42,15 @@ class QMeans:
         self.range = None
         self.x_range = None
         self.y_range = None
-        # self.boundary = set()
+        self.print_detail = print_detail
 
         self.init_range()
         self.init_centroid()
         self.init_clusters()
-        print("---------------initialization: ----------------------")
-        print("centroids: ", self.centroids)
-        print("clusters: ", self.clusters)
+        if self.print_detail:
+            print("---------------initialization: ----------------------")
+            print("centroids: ", self.centroids)
+            print("clusters: ", self.clusters)
 
         self.env = env
         if self.env == 'sim':
@@ -157,12 +158,14 @@ class QMeans:
         for job in jobs:
             output += inner_product.get_inner_product_result(job, task_num_per_circuit, self.env)
 
-        print("output: ", output)
+        if self.print_detail:
+            print("output: ", output)
         new_cluster_id_list = list()
         for i in range(len(points)):
             new_cluster_id_list.append(output[i * self.cluster_num: (i + 1) * self.cluster_num].index(
                 max(output[i * self.cluster_num: (i + 1) * self.cluster_num])))
-        print("new_cluster_id_list: ", new_cluster_id_list)
+        if self.print_detail:
+            print("new_cluster_id_list: ", new_cluster_id_list)
 
         return new_cluster_id_list
 
@@ -190,33 +193,44 @@ class QMeans:
             for point in self.clusters[i]:
                 tmp_x += point[0]
                 tmp_y += point[1]
-            self.centroids[i] = [1.0 * tmp_x / len(self.clusters[i]), 1.0 * tmp_y / len(self.clusters[i])]
+            try:
+                self.centroids[i] = [1.0 * tmp_x / len(self.clusters[i]), 1.0 * tmp_y / len(self.clusters[i])]
+            except ZeroDivisionError:
+                print("You are not lucky. Please try again.")
+                sys.exit()
 
     def q_means(self):
         for i in range(self.iter_num):
-            print('-------------------', i, '-th Q-means: ------------------------')
+            if self.print_detail:
+                print('-------------------', i, '-th Q-means: ------------------------')
             self.update_centroids()
             if self.update_clusters():
+                if self.print_detail:
+                    print("centroids: ", self.centroids)
+                    print("clusters: ", self.clusters)
+                break
+            if self.print_detail:
                 print("centroids: ", self.centroids)
                 print("clusters: ", self.clusters)
-                break
-            print("centroids: ", self.centroids)
-            print("clusters: ", self.clusters)
 
         return [SingleCluster(self.centroids[i], self.clusters[i]) for i in range(self.cluster_num)]
 
 
-def divide_clusters(points, cluster_num, env, backend, max_qubit_num):
-    clusters = QMeans(points, cluster_num, env, backend, max_qubit_num).q_means()
+def divide_clusters(points, cluster_num, env, backend, max_qubit_num, print_detail=False):
+    clusters = QMeans(points, cluster_num, env, backend, max_qubit_num, print_detail).q_means()
     i = 0
     while i < len(clusters):
         if clusters[i].element_num <= 6:
             i += 1
         else:
             print("The following cluster need to be split again: ", clusters[i].elements)
-            clusters[i: i + 1] = QMeans(clusters[i].elements, m.ceil(clusters[i].element_num / 6), args.env,
-                                        args.backend, args.max_qubit_num).q_means()
+            clusters[i: i + 1] = QMeans(clusters[i].elements, m.ceil(clusters[i].element_num / 6), env,
+                                        backend, max_qubit_num).q_means()
 
+    print("The number of clusters: ", len(clusters))
+    print("The final result of Q-means: ")
+    for i in range(len(clusters)):
+        print(i, '-th final cluster: ', "centroid: ", clusters[i].centroid, " cluster: ", clusters[i].elements)
     return clusters
 
 
@@ -238,6 +252,7 @@ if __name__ == '__main__':
     parser.add_argument('--backend', '-b', type=str, default=None, help='The backend to run program')
     parser.add_argument('--max_qubit_num', '-m', type=int, default=15,
                         help='The maximum number of qubits in the backend')
+    parser.add_argument('--print_detail', '-p', type=bool, default=False)
 
     args = parser.parse_args()
 
@@ -248,14 +263,10 @@ if __name__ == '__main__':
         points.append([float(point[i]) for i in np.arange(len(point))])
 
     cluster_num = m.ceil(len(points) / 6)
-    clusters = divide_clusters(points, cluster_num, args.env, args.backend, args.max_qubit_num)
+    clusters = divide_clusters(points, cluster_num, args.env, args.backend, args.max_qubit_num, args.print_detail)
 
-    print("The number of clusters: ", len(clusters))
     print("The maximum number of points for all clusters: ", max([cluster.element_num for cluster in clusters]))
     print("The minimum number of points for all clusters: ", min([cluster.element_num for cluster in clusters]))
-    print("The final result of Q-means: ")
-    for i in range(len(clusters)):
-        print(i, '-th final cluster: ', "centroid: ", clusters[i].centroid, " cluster: ", clusters[i].elements)
     print("The weight for result is: ", estimation(clusters))
 
     colors = plt.cm.rainbow(np.linspace(0, 1, len(clusters)))

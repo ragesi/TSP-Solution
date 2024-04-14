@@ -2,10 +2,11 @@ from scipy.spatial import ConvexHull, QhullError
 
 from TSP_path.optimal_path import OptimalPath
 import math as m
+import numpy as np
 
 
 def cal_similarity(point1, point2):
-    return m.sqrt(pow(point1[0] - point2[0], 2) + pow(point1[1] - point2[1], 2))
+    return np.linalg.norm(np.array(point1) - np.array(point2))
 
 
 def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
@@ -94,22 +95,28 @@ class SingleCluster(BaseCluster):
         self.reorder(opt_path)
 
     def find_convex_hull(self):
-        try:
-            hull = ConvexHull(self.elements)
-            hull_vertices = hull.vertices
-            for vertex in hull_vertices:
-                self.convex_hull.append(self.elements[vertex])
-        except QhullError:
-            # 说明这个点集都沿着同一条直线排列
-            max_dist = -1
-            for i in range(self.element_num):
-                tmp_dist = cal_similarity(self.elements[i - 1], self.elements[i])
-                if tmp_dist > max_dist:
-                    max_dist = tmp_dist
-                    self.convex_hull = [self.elements[i - 1], self.elements[i]]
+        if len(self.elements) < 3:
+            self.convex_hull = self.elements
+        else:
+            try:
+                hull = ConvexHull(self.elements)
+                hull_vertices = hull.vertices
+                for vertex in hull_vertices:
+                    self.convex_hull.append(self.elements[vertex])
+            except QhullError:
+                # 说明这个点集都沿着同一条直线排列
+                max_dist = -1
+                for i in range(self.element_num):
+                    tmp_dist = cal_similarity(self.elements[i - 1], self.elements[i])
+                    if tmp_dist > max_dist:
+                        max_dist = tmp_dist
+                        self.convex_hull = [self.elements[i - 1], self.elements[i]]
 
     def get_convex_hull(self):
-        return [point for point in self.convex_hull if point != self.head and point != self.tail]
+        if self.element_num > 1:
+            return [point for point in self.convex_hull if point != self.head and point != self.tail]
+        else:
+            return self.convex_hull
 
     def get_point_num(self):
         return self.element_num

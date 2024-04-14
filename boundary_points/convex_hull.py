@@ -47,7 +47,7 @@ class ConvexHull:
                         normalize_vec = self.normalization(normalize_vec)
                         cur_vec_list.append(normalize_vec)
 
-            next_hull_index = inner_product.get_max_inner_product(self.base_vec, cur_vec_list)
+            # next_hull_index = inner_product.get_inner_product_result(self.base_vec, cur_vec_list)
             if next_hull_index >= self.base_index:
                 next_hull_index += 1
             self.convex_hull_set.append(self.points[next_hull_index])

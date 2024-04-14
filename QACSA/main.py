@@ -8,6 +8,7 @@ from sklearn.cluster import SpectralClustering
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial import ConvexHull, QhullError
 
+sys.path.append("..")
 from clustering import Q_means
 from cluster import SingleCluster, MultiCluster, cal_similarity
 from utils.read_dataset import read_dataset
@@ -61,6 +62,7 @@ class TSPSolution:
         self.backend = backend
 
         self.file_name = file_name
+        self.get_data()
 
     def get_data(self):
         lines = read_dataset(self.file_name, self.point_num)
@@ -105,11 +107,6 @@ class TSPSolution:
                 self.path.append(self.point_map.get(point))
             return
 
-        # 绘制
-        # for i in range(self.point_num):
-        #     plt.scatter(self.points[i][0], self.points[i][1], color='b', s=10)
-        # plt.show()
-
         # 删除掉离群点
         # outliers = []
         # nn = NearestNeighbors(n_neighbors=4)
@@ -146,27 +143,20 @@ class TSPSolution:
         print(len(self.path))
 
         # 绘制
-        cluster_num = len(self.path)
-        colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-        for i in range(cluster_num):
-            cur_cluster = self.path[i]
-            plt.scatter(cur_cluster.centroid[0], cur_cluster.centroid[1], color=colors[i], s=30, marker='x')
-            for point in cur_cluster.elements:
-                plt.scatter(point[0], point[1], color=colors[i], s=5)
-        plt.show()
+        # cluster_num = len(self.path)
+        # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
+        # for i in range(cluster_num):
+        #     cur_cluster = self.path[i]
+        #     plt.scatter(cur_cluster.centroid[0], cur_cluster.centroid[1], color=colors[i], s=30, marker='x')
+        #     for point in cur_cluster.elements:
+        #         plt.scatter(point[0], point[1], color=colors[i], s=5)
+        # plt.show()
 
         # 多次合并互为最近邻的聚类
         while len(self.path) > self.sub_issue_max_size:
-            # min_len = 1000000
-            # merge_1 = -1
-            # merge_2 = -1
-            # for i in range(len(self.path)):
-            #     for j in range(i + 1, len(self.path)):
-            #
-
             neighbors = [0 for _ in range(len(self.path))]
             for i in range(len(self.path)):
-                min_len = 100000
+                min_len = 1000000
                 min_neighbor = -1
                 for j in range(len(self.path)):
                     if i == j:
@@ -188,32 +178,21 @@ class TSPSolution:
             for i in range(len(delete_index)):
                 self.path.pop(delete_index[i])
 
-            # 绘制
-            # cluster_num = len(self.path)
-            # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-            # for i in np.arange(cluster_num):
-            #     cur_multi_cluster = self.path[i]
-            #     plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i], s=5)
-            # # x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
-            # # y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
-            # # plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-            # plt.show()
-
         # 寻找最短回路
         self.path = [MultiCluster(None, self.path)]
-        self.path[0].find_optimal_circle(27)
+        self.path[0].find_optimal_circle(self.max_qubit_num)
         self.path = self.path[0].elements
 
         # 绘制
-        cluster_num = len(self.path)
-        colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-        for i in np.arange(cluster_num):
-            cur_multi_cluster = self.path[i]
-            plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i], s=5)
-        x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
-        y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
-        plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-        plt.show()
+        # cluster_num = len(self.path)
+        # colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
+        # for i in np.arange(cluster_num):
+        #     cur_multi_cluster = self.path[i]
+        #     plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i], s=5)
+        # x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
+        # y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
+        # plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
+        # plt.show()
 
         # 将multi-cluster一层一层返回到single cluster
         is_terminal = False
@@ -228,17 +207,6 @@ class TSPSolution:
                                                             self.path[(i + 1) % len(self.path)]])
                     tmp_multi_cluster.find_optimal_path(self.max_qubit_num)
                     self.path[i: i + 1] = tmp_multi_cluster.elements[1: -1]
-
-        # 绘制
-        cluster_num = len(self.path)
-        colors = plt.cm.rainbow(np.linspace(0, 1, cluster_num))
-        for i in np.arange(cluster_num):
-            cur_multi_cluster = self.path[i]
-            plt.scatter(cur_multi_cluster.centroid[0], cur_multi_cluster.centroid[1], color=colors[i], s=5)
-        x_values = [*[cur_cluster.centroid[0] for cur_cluster in self.path], self.path[0].centroid[0]]
-        y_values = [*[cur_cluster.centroid[1] for cur_cluster in self.path], self.path[0].centroid[1]]
-        plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', markersize=2, label='折线图')
-        plt.show()
 
         # for i in range(len(self.path)):
         #     print(i, "-th centroid: ", self.path[i].centroid)
@@ -258,6 +226,12 @@ class TSPSolution:
         for i in range(len(self.path) - 1, -1, -1):
             self.path[i: i + 1] = self.path[i].elements
 
+        # 绘制
+        for i in np.arange(self.point_num):
+            plt.plot([self.path[i - 1][0], self.path[i][0]], [self.path[i - 1][1], self.path[i][1]], linewidth=1,
+                     marker='o', markersize=2)
+        plt.show()
+
         # 将离群点加入到最终结果中
         # for i in range(len(outliers)):
         #     min_dist = 10000
@@ -271,8 +245,23 @@ class TSPSolution:
         #     self.path.insert(target_index, outliers[i])
 
         # 将节点映射成索引
-        for i in range(len(self.path)):
-            self.path[i] = self.point_map[self.path[i]]
+        # for i in range(len(self.path)):
+        #     self.path[i] = self.point_map[self.path[i]]
+
+    def cal_total_cost(self):
+        dist = 0.
+        for i in range(self.point_num):
+            dist += cal_similarity(self.path[i - 1], self.path[i])
+        return dist
+
+    def get_accuracy(self):
+        dist = self.cal_total_cost()
+        print("distance: ", dist)
+
+        opt_cost = float(read_dataset('opt_cost', self.point_num)[0])
+        print("optimal cost: ", opt_cost)
+
+        print("accuracy: ", dist/opt_cost)
 
 
 if __name__ == '__main__':
@@ -287,8 +276,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    file_path = 'dataset/423/pbn423.tsp'
-    test = TSPSolution()
-    test.get_data(file_path)
+    test = TSPSolution(args.file_name, args.scale, args.env, args.backend, args.max_qubit_num)
     test.divide_sub_issue()
     print(test.path)
+    test.get_accuracy()

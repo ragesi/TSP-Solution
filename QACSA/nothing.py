@@ -4,7 +4,10 @@ import math as m
 from cluster import SingleCluster
 import matplotlib.pyplot as plt
 
+# import sys
+# sys.path.append("..")
 from dataset import test
+from utils.read_dataset import read_dataset
 
 
 def cal_similarity(point1, point2):
@@ -38,13 +41,20 @@ def find_optimal_path(points, cur_path, cur_len, opt_path, min_len, is_chosen):
     return min_len
 
 
-test_data = test.cycle_test_for_5
+lines = read_dataset('ulysses16.tsp', 16)
+points = []
+for line in lines:
+    point = line.strip().split(' ')
+    point = [int(point[0]), float(point[1]), float(point[2])]
+    points.append((point[1], point[2]))
+points.append(points[0])
+print(len(points))
 
 cur_path = [0]
-optimal_path = [0 for _ in range(len(test_data))]
+optimal_path = [0 for _ in range(len(points))]
 threshold = 100000
-is_chosen = [False for _ in range(len(test_data))]
-threshold = find_optimal_path(test_data, cur_path, 0, optimal_path, threshold, is_chosen)
+is_chosen = [False for _ in range(len(points))]
+threshold = find_optimal_path(points, cur_path, 0, optimal_path, threshold, is_chosen)
 
 # x_values = [cycle_test_for_4[optimal_path[i]][0] for i in range(len(optimal_path))]
 # y_values = [cycle_test_for_4[optimal_path[i]][1] for i in range(len(optimal_path))]
@@ -53,22 +63,6 @@ threshold = find_optimal_path(test_data, cur_path, 0, optimal_path, threshold, i
 
 print(optimal_path)
 print(threshold)
-
-for i in range(1, 5):
-    for j in range(1, 5):
-        if i == j:
-            continue
-        for k in range(1, 5):
-            if i == k or j == k:
-                continue
-            for x in range(1, 5):
-                if i == x or j == x or k == x:
-                    continue
-                res = cal_similarity(test_data[0], test_data[i]) + cal_similarity(test_data[i],
-                                                                                  test_data[j]) + cal_similarity(
-                    test_data[j], test_data[k]) + cal_similarity(test_data[k], test_data[x]) + cal_similarity(
-                    test_data[x], test_data[0])
-                print('[0, ', i, ', ', j, ', ', k, ', ', x, ', 0]: ', res)
 
 
 def find_diff_clusters_connector(cluster_1, cluster_2):
