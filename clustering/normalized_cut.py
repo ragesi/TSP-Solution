@@ -135,9 +135,8 @@ class QAOACut:
         energy_old = 1000
         energy_min = 1000
 
-        i = 0
         s = 0
-        while i < 88 and abs(energy - energy_old) > self.delta:
+        while s < 1000 and abs(energy - energy_old) > self.delta:
             if s > 0:
                 # optimize theta
                 self.gradient_descent()
@@ -154,8 +153,6 @@ class QAOACut:
             # reduce the step size
             if self.step > 0.001:
                 self.step *= 0.9
-            else:
-                i += 1
 
 
 if __name__ == '__main__':

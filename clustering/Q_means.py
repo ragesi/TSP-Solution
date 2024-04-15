@@ -234,13 +234,46 @@ def divide_clusters(points, cluster_num, env, backend, max_qubit_num, print_deta
     return clusters
 
 
-def estimation(clusters):
+def cal_cut_weights(cluster_1, cluster_2, sigma):
     weights = 0.
-    for cluster in clusters:
-        for i in range(cluster.element_num):
-            for j in range(i + 1, cluster.element_num):
-                weights += np.linalg.norm(np.array(cluster.elements[i]) - np.array(cluster.elements[j]))
+    for element_1 in cluster_1.elements:
+        for element_2 in cluster_2.elements:
+            cur_dist = np.linalg.norm(np.array(element_1) - np.array(element_2))
+            weights += np.exp(-np.square(np.array(cur_dist) / sigma) / 2)
     return weights
+
+
+def cal_weights(cluster, sigma):
+    weights = 0.
+    for i in range(cluster.element_num):
+        for j in range(i + 1, cluster.element_num):
+            cur_dist = np.linalg.norm(np.array(cluster.elements[i]) - np.array(cluster.elements[j]))
+            weights += np.exp(-np.square(np.array(cur_dist) / sigma) / 2)
+    return weights
+
+
+def estimation(clusters, points):
+    max_dist = 0.0
+    min_dist = 100000.
+    for i in range(len(points)):
+        for j in range(i + 1, len(points)):
+            dist = np.linalg.norm(np.array(points[i]) - np.array(points[j]))
+            if dist > max_dist:
+                max_dist = dist
+            if dist < min_dist:
+                min_dist = dist
+    print("max_dist: ", max_dist)
+    print("min_dist: ", min_dist)
+    sigma = (max_dist - min_dist) * 0.15
+    print("sigma: ", sigma)
+
+    weights = 0.
+    cut_weights = 0.
+    for i in range(len(clusters)):
+        weights += cal_weights(clusters[i], sigma)
+        for j in range(i + 1, len(clusters)):
+            cut_weights += cal_cut_weights(clusters[i], clusters[j], sigma)
+    return weights, cut_weights
 
 
 if __name__ == '__main__':
@@ -267,7 +300,9 @@ if __name__ == '__main__':
 
     print("The maximum number of points for all clusters: ", max([cluster.element_num for cluster in clusters]))
     print("The minimum number of points for all clusters: ", min([cluster.element_num for cluster in clusters]))
-    print("The weight for result is: ", estimation(clusters))
+    weights, cut_weights = estimation(clusters, points)
+    print("The weights in all subgraphs for result is: ", weights)
+    print("The cut-weights for result is: ", cut_weights)
 
     colors = plt.cm.rainbow(np.linspace(0, 1, len(clusters)))
     for i, cluster in enumerate(clusters):

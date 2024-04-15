@@ -1,0 +1,14 @@
+7:
+Q-means:
+2 clusters, 1.7182366208137636 weights, 0.00020152153366742267 cut-weights
+2 clusters, 1.7182366208137636 weights, 0.00020152153366742267 cut-weights
+2 clusters, 1.697873616161161  weights, 0.020564526186270075   cut-weights
+2 clusters, 1.7182366208137636 weights, 0.00020152153366742267 cut-weights
+2 clusters, 1.7068117732004413 weights, 0.011626369146989439   cut-weights
+Normalized cut:
+100 iterations:
+2 clusters, 0.4628749471082211 weights, 1.25556319523921       cut-weights
+2 clusters, 0.9655574335048687 weights, 0.7528807088425622     cut-weights
+1000 iterations:
+2 clusters, 0.9655574335048687 weights, 0.7528807088425622     cut-weights
+
