@@ -1,9 +1,14 @@
+import argparse
+import sys
+
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit_aer import AerSimulator
 
 import random
 import math as m
+import numpy as np
 
+sys.path.append("..")
 import clustering.cut_preparation as prep
 from utils import execute, read_dataset
 from dataset import test
@@ -156,15 +161,17 @@ class QAOACut:
 
 
 if __name__ == '__main__':
-    # lines = read_dataset.read_dataset('ulysses16.tsp', 16)
-    # points = list()
-    # for line in lines:
-    #     tmp_point = line.strip().split(' ')
-    #     tmp_point = [float(x) for x in tmp_point]
-    #     tmp_point[0] = int(tmp_point[0])
-    #     points.append([tmp_point[1], tmp_point[2]])
+    parser = argparse.ArgumentParser(description='Normalized Cut')
+    parser.add_argument('--file_name', '-f', type=str, default='ulysses16.tsp', help='Dataset of TSP')
+    parser.add_argument('--scale', '-s', type=int, default=16, help='The scale of dataset')
 
-    points = test.point_test_for_7
+    args = parser.parse_args()
+
+    lines = read_dataset.read_dataset(args.file_name, args.scale)
+    points = []
+    for line in lines:
+        point = line.strip().split(' ')[1:]
+        points.append([float(point[i]) for i in np.arange(len(point))])
 
     theta = list()
     for _ in range(4):

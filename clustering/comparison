@@ -12,3 +12,31 @@ Normalized cut:
 1000 iterations:
 2 clusters, 0.9655574335048687 weights, 0.7528807088425622     cut-weights
 
+
+16:
+Q-means:
+6 clusters, 19.88147718261586   weights,    24.616735195761436  cut-weights
+5 clusters, 17.505798461756985  weights,    26.992413916620315  cut-weights
+5 clusters, 23.785201562964545  weights,    20.71301081541276   cut-weights
+6 clusters, 16.331204308039904  weights,    28.167008070337392  cut-weights
+6 clusters, 14.279997417167369  weights,    30.21821496120992   cut-weights
+4 clusters, 19.813452317400838  weights,    24.684760060976465  cut-weights
+Normalized cut:
+100 iterations:
+
+
+22:
+Q-means:
+6 clusters, 28.95867533406273   weights,    63.90442999145721   cut-weights
+6 clusters, 33.38532249631095   weights,    59.47778282920899   cut-weights
+7 clusters, 35.20384725949939   weights,    57.65925806602055   cut-weights
+6 clusters, 34.14011659891376   weights,    58.72298872660619   cut-weights
+6 clusters, 31.532158949076283  weights,    61.330946376443656  cut-weights
+
+29:
+Q-means:
+7 clusters, 39.40543885506527   weights,    47.576161070920065  cut-weights
+6 clusters, 38.997248157166204  weights,    47.984351768819124  cut-weights
+6 clusters, 41.31528100105865   weights,    45.66631892492667   cut-weights
+7 clusters, 37.737092897019004  weights,    49.244507028966325  cut-weights
+6 clusters, 39.787113394341866  weights,    47.19448653164346   cut-weights

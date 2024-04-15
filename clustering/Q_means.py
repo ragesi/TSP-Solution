@@ -227,10 +227,10 @@ def divide_clusters(points, cluster_num, env, backend, max_qubit_num, print_deta
             clusters[i: i + 1] = QMeans(clusters[i].elements, m.ceil(clusters[i].element_num / 6), env,
                                         backend, max_qubit_num).q_means()
 
-    print("The number of clusters: ", len(clusters))
     print("The final result of Q-means: ")
     for i in range(len(clusters)):
         print(i, '-th final cluster: ', "centroid: ", clusters[i].centroid, " cluster: ", clusters[i].elements)
+    print("The number of clusters: ", len(clusters))
     return clusters
 
 
