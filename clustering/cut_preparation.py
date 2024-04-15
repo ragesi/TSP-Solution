@@ -3,7 +3,6 @@ import numpy as np
 from sklearn.neighbors import kneighbors_graph
 from scipy.sparse.csgraph import laplacian
 from sklearn.neighbors import NearestNeighbors
-import networkx as nx
 import pandas as pd
 
 from qiskit import QuantumRegister, QuantumCircuit

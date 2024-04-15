@@ -40,11 +40,6 @@ def cal_dist_point_to_line(point, line_start, line_end):
         dist_vec_of_point * np.sin(np.arccos(np.dot(vec_of_point, vec_of_line) / dist_vec_of_line / dist_vec_of_point)))
 
 
-# def determine_convex_hull_shape(points):
-#     # 计算凸包
-#
-
-
 class TSPSolution:
     def __init__(self, file_name, point_num, env, backend, max_qubit_num):
         self.points = []

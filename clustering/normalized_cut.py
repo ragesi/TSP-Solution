@@ -6,6 +6,7 @@ import math as m
 
 import clustering.cut_preparation as prep
 from utils import execute, read_dataset
+from dataset import test
 
 
 class QAOACut:
@@ -136,7 +137,7 @@ class QAOACut:
 
         i = 0
         s = 0
-        while i < 100 and abs(energy - energy_old) > self.delta:
+        while i < 88 and abs(energy - energy_old) > self.delta:
             if s > 0:
                 # optimize theta
                 self.gradient_descent()
@@ -158,13 +159,15 @@ class QAOACut:
 
 
 if __name__ == '__main__':
-    lines = read_dataset.read_dataset('ulysses16.tsp', 16)
-    points = list()
-    for line in lines:
-        tmp_point = line.strip().split(' ')
-        tmp_point = [float(x) for x in tmp_point]
-        tmp_point[0] = int(tmp_point[0])
-        points.append([tmp_point[1], tmp_point[2]])
+    # lines = read_dataset.read_dataset('ulysses16.tsp', 16)
+    # points = list()
+    # for line in lines:
+    #     tmp_point = line.strip().split(' ')
+    #     tmp_point = [float(x) for x in tmp_point]
+    #     tmp_point[0] = int(tmp_point[0])
+    #     points.append([tmp_point[1], tmp_point[2]])
+
+    points = test.point_test_for_7
 
     theta = list()
     for _ in range(4):
@@ -172,7 +175,7 @@ if __name__ == '__main__':
     lamda = 6
     max_sum = 0.25
 
-    test = QAOACut(points, theta, lamda, max_sum)
-    test.main()
-    print("min_theta: ", test.min_theta)
-    print("theta: ", test.theta)
+    cut = QAOACut(points, theta, lamda, max_sum)
+    cut.main()
+    print("min_theta: ", cut.min_theta)
+    print("theta: ", cut.theta)
