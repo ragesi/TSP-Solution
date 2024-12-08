@@ -15,6 +15,8 @@ def exec_qcircuit(qc, shots, env, noisy, backend, print_detail=True):
             simulator = AerSimulator.from_backend(device_backend)
         else:
             simulator = AerSimulator()
+            # device_backend = GenericBackendV2(qc.num_qubits)
+            # simulator = AerSimulator.from_backend(device_backend)
         trans_qc = transpile(qc, simulator)
         if print_detail:
             print("The circuit depth after transpile", trans_qc.depth())

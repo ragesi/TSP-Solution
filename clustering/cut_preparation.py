@@ -9,12 +9,12 @@ from qiskit import QuantumRegister, QuantumCircuit
 import qiskit.circuit.library as lib
 
 
-def build_gussian_adj(adj_matrix, point_num):
+def build_gaussian_adj(adj_matrix: np.ndarray, point_num: int) -> np.ndarray:
     """
-    Transform all elements in adjacency matrix into the form of gussian
+    Transform all elements in adjacency matrix into the form of gaussian
     :param adj_matrix: numpy array
     :param point_num: int
-    :return: adj_matrix in the form of gussian
+    :return: adj_matrix in the form of gaussian
     """
     min_element = adj_matrix.min()
     max_element = adj_matrix.max()
@@ -28,7 +28,7 @@ def build_gussian_adj(adj_matrix, point_num):
     return adj_transform
 
 
-def build_adj_matrix(points, point_num):
+def build_adj_matrix(points: list, point_num: int) -> np.ndarray:
     """
     Build adjacency matrix from points
     :param points: list
@@ -39,14 +39,14 @@ def build_adj_matrix(points, point_num):
     for i in range(point_num):
         for j in range(i + 1, point_num):
             adj_matrix[i][j] = adj_matrix[j][i] = np.linalg.norm(np.array(points[i]) - np.array(points[j]))
-    # transfer to gussian
-    adj_matrix = build_gussian_adj(adj_matrix, point_num)
+    # transfer to gaussian
+    adj_matrix = build_gaussian_adj(adj_matrix, point_num)
     # enlarge all elements from the range of [0, 1] to [0, 10]
     adj_matrix *= 10
     return adj_matrix
 
 
-def build_deg_matrix(adj_matrix, point_num):
+def build_deg_matrix(adj_matrix: np.ndarray, point_num: int) -> list:
     """
     Build degree matrix from adjacency matrix
     :param point_num: int
@@ -67,12 +67,11 @@ def build_deg_matrix(adj_matrix, point_num):
     return deg_matrix
 
 
-def scaling_up_deg_matrix(deg_matrix, point_num):
+def scaling_up_deg_matrix(deg_matrix: list, point_num: int) -> list:
     """
     Amplify degree to distinguish each of them
     :param point_num: int
-    :param deg_matrix: numpy array
-    :return: list
+    :param deg_matrix: list
     """
     large_deg_matrix = list()
     for i in range(point_num):
@@ -97,18 +96,23 @@ def scaling_up_deg_matrix(deg_matrix, point_num):
 #     return norm_deg_matrix
 
 
-def scaling_down_deg_matrix(deg_matrix, max_sum, point_num):
+def scaling_down_deg_matrix(deg_matrix: list, norm_threshold: float, point_num: int) -> list:
+    """
+    normalizing degree
+    :param deg_matrix: list
+    :param norm_threshold: float
+    :param point_num: int
+    """
     small_deg_matrix = list()
     sum_deg = sum(deg_matrix)
     for i in range(point_num):
-        small_deg_matrix.append(deg_matrix[i] / sum_deg * max_sum)
+        small_deg_matrix.append(deg_matrix[i] / sum_deg * norm_threshold)
     return small_deg_matrix
 
 
-def qpe(precision, small_deg_matrix, point_num):
+def qpe(precision: int, small_deg_matrix: list, point_num: int):
     """
-    Use the QPE algorithm to determine
-    whether the sum of degree in cluster 0 is larger than the sum of degree in cluster 1
+    Use the QPE algorithm to determine whether the sum of degree in cluster 0 is larger than the sum of degree in cluster 1
     :param precision:
     :param small_deg_matrix:
     :param point_num:
